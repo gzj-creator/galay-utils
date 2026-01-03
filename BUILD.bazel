@@ -1,0 +1,38 @@
+cc_library(
+    name = "galay-utils",
+    hdrs = glob([
+        "galay-utils/**/*.hpp",
+    ]),
+    includes = ["."],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "galay-utils-test",
+    hdrs = glob([
+        "galay-utils/**/*.hpp",
+    ]),
+    includes = ["."],
+    copts = [
+        "-std=c++20",
+        "-O2",
+    ],
+    linkopts = select({
+        "@platforms//os:linux": ["-pthread"],
+        "@platforms//os:macos": [],
+        "@platforms//os:windows": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_all",
+    srcs = ["test/test_all.cpp"],
+    deps = [":galay-utils-test"],
+    copts = ["-std=c++20"],
+    linkopts = select({
+        "@platforms//os:linux": ["-pthread"],
+        "@platforms//os:macos": [],
+        "@platforms//os:windows": [],
+    }),
+)
