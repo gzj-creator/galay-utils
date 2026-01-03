@@ -36,3 +36,17 @@ cc_binary(
         "@platforms//os:windows": [],
     }),
 )
+
+# Install target - header files for manual installation
+filegroup(
+    name = "headers",
+    srcs = glob([
+        "galay-utils/**/*.hpp",
+        "galay-utils/**/*.inl",
+    ]),
+    visibility = ["//visibility:public"],
+)
+
+# For manual installation, you can copy the headers to your include path:
+# bazel build //:headers
+# Then manually copy bazel-bin/headers/** to /usr/local/include/galay-utils/

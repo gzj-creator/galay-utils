@@ -98,6 +98,26 @@ find_package(galay-utils REQUIRED)
 target_link_libraries(your_target galay::galay-utils)
 ```
 
+#### 方法3: Bazel安装
+
+```bash
+# 构建头文件包
+bazel build //:headers
+
+# 手动复制头文件到系统目录
+sudo cp -r bazel-bin/headers/** /usr/local/include/galay-utils/
+```
+
+然后在BUILD.bazel中使用：
+
+```python
+cc_library(
+    name = "my_library",
+    hdrs = ["my_header.h"],
+    deps = ["@galay_utils//:galay-utils"],
+)
+```
+
 ### 基本使用
 
 ```cpp
