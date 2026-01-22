@@ -57,10 +57,10 @@
 #include "balancer/LoadBalancer.hpp"
 
 // Algorithm utilities
-#include "algorithm/Base64.h"
-#include "algorithm/MD5.h"
-#include "algorithm/MurmurHash3.h"
-#include "algorithm/Salt.h"
-#include "algorithm/HMAC.h"
+#include "algorithm/Base64.hpp"
+#include "algorithm/MD5.hpp"
+#include "algorithm/MurmurHash3.hpp"
+#include "algorithm/Salt.hpp"
+#include "algorithm/HMAC.hpp"
 
 #endif // GALAY_UTILS_HPP
