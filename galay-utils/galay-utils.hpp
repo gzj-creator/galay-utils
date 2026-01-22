@@ -56,4 +56,11 @@
 // Load balancing
 #include "balancer/LoadBalancer.hpp"
 
+// Algorithm utilities
+#include "algorithm/Base64.h"
+#include "algorithm/MD5.h"
+#include "algorithm/MurmurHash3.h"
+#include "algorithm/Salt.h"
+#include "algorithm/HMAC.h"
+
 #endif // GALAY_UTILS_HPP
