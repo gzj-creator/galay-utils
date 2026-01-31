@@ -2,26 +2,31 @@
 #define GALAY_UTILS_CIRCUIT_BREAKER_HPP
 
 #include "../common/Defn.hpp"
-#include <mutex>
 #include <chrono>
 #include <atomic>
-#include <functional>
-#include <deque>
 #include <stdexcept>
 
 namespace galay::utils {
 
-enum class CircuitState { Closed, Open, HalfOpen };
+enum class CircuitState : int { Closed = 0, Open = 1, HalfOpen = 2 };
 
 struct CircuitBreakerConfig {
     size_t failureThreshold = 5;
     size_t successThreshold = 3;
     std::chrono::seconds resetTimeout{30};
-    double slowCallThreshold = 5.0;
-    size_t slidingWindowSize = 10;
-    double slowCallRateThreshold = 0.5;
 };
 
+/**
+ * @brief 无锁熔断器实现
+ *
+ * 使用原子变量实现状态管理，适合高并发场景和协程环境。
+ *
+ * 状态转换：
+ * - Closed -> Open: 连续失败次数达到阈值
+ * - Open -> HalfOpen: 超时后自动转换
+ * - HalfOpen -> Closed: 连续成功次数达到阈值
+ * - HalfOpen -> Open: 发生失败
+ */
 class CircuitBreaker {
 public:
     using Clock = std::chrono::steady_clock;
@@ -29,24 +34,33 @@ public:
 
     explicit CircuitBreaker(CircuitBreakerConfig config = {})
         : m_config(std::move(config))
-        , m_state(CircuitState::Closed)
+        , m_state(static_cast<int>(CircuitState::Closed))
         , m_failureCount(0)
         , m_successCount(0)
-        , m_lastFailureTime(TimePoint::min()) {}
+        , m_lastFailureTime(0) {}
 
     bool allowRequest() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        auto currentState = static_cast<CircuitState>(m_state.load(std::memory_order_acquire));
 
-        switch (m_state) {
+        switch (currentState) {
             case CircuitState::Closed:
                 return true;
 
             case CircuitState::Open: {
-                auto now = Clock::now();
-                if (now - m_lastFailureTime >= m_config.resetTimeout) {
-                    m_state = CircuitState::HalfOpen;
-                    m_successCount = 0;
-                    m_failureCount = 0;
+                auto now = Clock::now().time_since_epoch().count();
+                auto lastFailure = m_lastFailureTime.load(std::memory_order_acquire);
+                auto timeoutNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                    m_config.resetTimeout).count();
+
+                if (now - lastFailure >= timeoutNs) {
+                    // 尝试转换到 HalfOpen
+                    int expected = static_cast<int>(CircuitState::Open);
+                    if (m_state.compare_exchange_strong(expected,
+                            static_cast<int>(CircuitState::HalfOpen),
+                            std::memory_order_acq_rel)) {
+                        m_successCount.store(0, std::memory_order_release);
+                        m_failureCount.store(0, std::memory_order_release);
+                    }
                     return true;
                 }
                 return false;
@@ -60,24 +74,27 @@ public:
     }
 
     void onSuccess() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        auto currentState = static_cast<CircuitState>(m_state.load(std::memory_order_acquire));
 
-        m_metrics.push_back({true, 0.0, Clock::now()});
-        trimMetrics();
-
-        switch (m_state) {
+        switch (currentState) {
             case CircuitState::Closed:
-                m_failureCount = 0;
+                m_failureCount.store(0, std::memory_order_release);
                 break;
 
-            case CircuitState::HalfOpen:
-                ++m_successCount;
-                if (m_successCount >= m_config.successThreshold) {
-                    m_state = CircuitState::Closed;
-                    m_failureCount = 0;
-                    m_successCount = 0;
+            case CircuitState::HalfOpen: {
+                auto count = m_successCount.fetch_add(1, std::memory_order_acq_rel) + 1;
+                if (count >= m_config.successThreshold) {
+                    // 尝试转换到 Closed
+                    int expected = static_cast<int>(CircuitState::HalfOpen);
+                    if (m_state.compare_exchange_strong(expected,
+                            static_cast<int>(CircuitState::Closed),
+                            std::memory_order_acq_rel)) {
+                        m_failureCount.store(0, std::memory_order_release);
+                        m_successCount.store(0, std::memory_order_release);
+                    }
                 }
                 break;
+            }
 
             case CircuitState::Open:
                 break;
@@ -85,51 +102,38 @@ public:
     }
 
     void onFailure() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        auto now = Clock::now().time_since_epoch().count();
+        m_lastFailureTime.store(now, std::memory_order_release);
 
-        m_metrics.push_back({false, 0.0, Clock::now()});
-        trimMetrics();
-        m_lastFailureTime = Clock::now();
+        auto currentState = static_cast<CircuitState>(m_state.load(std::memory_order_acquire));
 
-        switch (m_state) {
-            case CircuitState::Closed:
-                ++m_failureCount;
-                if (m_failureCount >= m_config.failureThreshold) {
-                    m_state = CircuitState::Open;
+        switch (currentState) {
+            case CircuitState::Closed: {
+                auto count = m_failureCount.fetch_add(1, std::memory_order_acq_rel) + 1;
+                if (count >= m_config.failureThreshold) {
+                    // 尝试转换到 Open
+                    int expected = static_cast<int>(CircuitState::Closed);
+                    m_state.compare_exchange_strong(expected,
+                        static_cast<int>(CircuitState::Open),
+                        std::memory_order_acq_rel);
                 }
                 break;
+            }
 
-            case CircuitState::HalfOpen:
-                m_state = CircuitState::Open;
-                m_failureCount = 0;
-                m_successCount = 0;
+            case CircuitState::HalfOpen: {
+                // 直接转换到 Open
+                int expected = static_cast<int>(CircuitState::HalfOpen);
+                if (m_state.compare_exchange_strong(expected,
+                        static_cast<int>(CircuitState::Open),
+                        std::memory_order_acq_rel)) {
+                    m_failureCount.store(0, std::memory_order_release);
+                    m_successCount.store(0, std::memory_order_release);
+                }
                 break;
+            }
 
             case CircuitState::Open:
                 break;
-        }
-    }
-
-    void onSlowCall(double duration) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        bool isSlow = duration >= m_config.slowCallThreshold;
-        m_metrics.push_back({true, duration, Clock::now()});
-        trimMetrics();
-
-        if (m_state == CircuitState::Closed && isSlow) {
-            size_t slowCount = 0;
-            for (const auto& m : m_metrics) {
-                if (m.duration >= m_config.slowCallThreshold) {
-                    ++slowCount;
-                }
-            }
-
-            double slowRate = static_cast<double>(slowCount) / m_metrics.size();
-            if (slowRate >= m_config.slowCallRateThreshold) {
-                m_state = CircuitState::Open;
-                m_lastFailureTime = Clock::now();
-            }
         }
     }
 
@@ -139,17 +143,9 @@ public:
             throw std::runtime_error("Circuit breaker is open");
         }
 
-        auto start = Clock::now();
         try {
             auto result = f();
-            auto duration = std::chrono::duration<double>(Clock::now() - start).count();
-
-            if (duration >= m_config.slowCallThreshold) {
-                onSlowCall(duration);
-            } else {
-                onSuccess();
-            }
-
+            onSuccess();
             return result;
         } catch (...) {
             onFailure();
@@ -163,17 +159,9 @@ public:
             return fallback();
         }
 
-        auto start = Clock::now();
         try {
             auto result = f();
-            auto duration = std::chrono::duration<double>(Clock::now() - start).count();
-
-            if (duration >= m_config.slowCallThreshold) {
-                onSlowCall(duration);
-            } else {
-                onSuccess();
-            }
-
+            onSuccess();
             return result;
         } catch (...) {
             onFailure();
@@ -182,8 +170,7 @@ public:
     }
 
     CircuitState state() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_state;
+        return static_cast<CircuitState>(m_state.load(std::memory_order_acquire));
     }
 
     const char* stateString() const {
@@ -196,51 +183,32 @@ public:
     }
 
     size_t failureCount() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_failureCount;
+        return m_failureCount.load(std::memory_order_acquire);
     }
 
     size_t successCount() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_successCount;
+        return m_successCount.load(std::memory_order_acquire);
     }
 
     void reset() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_state = CircuitState::Closed;
-        m_failureCount = 0;
-        m_successCount = 0;
-        m_metrics.clear();
+        m_state.store(static_cast<int>(CircuitState::Closed), std::memory_order_release);
+        m_failureCount.store(0, std::memory_order_release);
+        m_successCount.store(0, std::memory_order_release);
     }
 
     void forceOpen() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_state = CircuitState::Open;
-        m_lastFailureTime = Clock::now();
+        m_state.store(static_cast<int>(CircuitState::Open), std::memory_order_release);
+        m_lastFailureTime.store(Clock::now().time_since_epoch().count(), std::memory_order_release);
     }
 
     const CircuitBreakerConfig& config() const { return m_config; }
 
 private:
-    struct Metric {
-        bool success;
-        double duration;
-        TimePoint timestamp;
-    };
-
-    void trimMetrics() {
-        while (m_metrics.size() > m_config.slidingWindowSize) {
-            m_metrics.pop_front();
-        }
-    }
-
     CircuitBreakerConfig m_config;
-    mutable std::mutex m_mutex;
-    CircuitState m_state;
-    size_t m_failureCount;
-    size_t m_successCount;
-    TimePoint m_lastFailureTime;
-    std::deque<Metric> m_metrics;
+    std::atomic<int> m_state;
+    std::atomic<size_t> m_failureCount;
+    std::atomic<size_t> m_successCount;
+    std::atomic<int64_t> m_lastFailureTime;
 };
 
 } // namespace galay::utils

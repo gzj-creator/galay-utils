@@ -2,9 +2,13 @@
 #include <cassert>
 #include <thread>
 #include <chrono>
+#include <iomanip>
 
 // Include all modules
 #include "../galay-utils/galay-utils.hpp"
+
+// galay-kernel for coroutine tests
+#include <galay-kernel/kernel/Runtime.h>
 
 using namespace galay::utils;
 
@@ -363,11 +367,11 @@ void testThread() {
 void testRateLimiter() {
     std::cout << "=== Testing RateLimiter ===" << std::endl;
 
-    // Counting semaphore
+    // Counting semaphore - 使用 tryAcquire 测试基本功能
     CountingSemaphore sem(3);
     assert(sem.available() == 3);
 
-    sem.acquire(2);
+    assert(sem.tryAcquire(2));
     assert(sem.available() == 1);
 
     sem.release(2);
@@ -390,6 +394,38 @@ void testRateLimiter() {
 
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
     assert(slidingWindow.tryAcquire()); // Should work after window expires
+
+    // 协程环境测试
+    galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, 2, 0);
+    runtime.start();
+
+    CountingSemaphore asyncSem(2);
+    std::atomic<bool> testDone{false};
+
+    // 测试 Semaphore 的协程 acquire
+    runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
+        // 异步获取
+        co_await asyncSem.acquire(1);
+        assert(asyncSem.available() == 1);
+
+        // 带超时的获取
+        auto result = co_await asyncSem.acquire(1).timeout(std::chrono::milliseconds(100));
+        assert(result.has_value());
+        assert(asyncSem.available() == 0);
+
+        asyncSem.release(2);
+        assert(asyncSem.available() == 2);
+
+        testDone = true;
+        co_return;
+    }());
+
+    // 等待协程完成
+    while (!testDone) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    runtime.stop();
 
     std::cout << "RateLimiter tests passed!" << std::endl;
 }
@@ -1366,6 +1402,282 @@ void testLoadBalancer() {
     std::cout << "LoadBalancer tests passed!" << std::endl;
 }
 
+// ==================== Stress Tests ====================
+void stressTestCircuitBreaker() {
+    std::cout << "=== Stress Testing CircuitBreaker ===" << std::endl;
+
+    CircuitBreakerConfig config;
+    config.failureThreshold = 100;
+    config.successThreshold = 50;
+    config.resetTimeout = std::chrono::seconds(1);
+
+    CircuitBreaker cb(config);
+
+    const int numThreads = 8;
+    const int opsPerThread = 100000;
+    std::atomic<int> successOps{0};
+    std::atomic<int> failureOps{0};
+    std::atomic<int> allowedRequests{0};
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < numThreads; ++t) {
+        threads.emplace_back([&, t]() {
+            for (int i = 0; i < opsPerThread; ++i) {
+                if (cb.allowRequest()) {
+                    ++allowedRequests;
+                    if (i % 10 == 0) {
+                        cb.onFailure();
+                        ++failureOps;
+                    } else {
+                        cb.onSuccess();
+                        ++successOps;
+                    }
+                }
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    int totalOps = numThreads * opsPerThread;
+    double opsPerSec = (totalOps * 1000.0) / duration;
+
+    std::cout << "  Threads: " << numThreads << std::endl;
+    std::cout << "  Total ops: " << totalOps << std::endl;
+    std::cout << "  Duration: " << duration << "ms" << std::endl;
+    std::cout << "  Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
+    std::cout << "  Allowed requests: " << allowedRequests << std::endl;
+    std::cout << "  Success ops: " << successOps << std::endl;
+    std::cout << "  Failure ops: " << failureOps << std::endl;
+    std::cout << "  Final state: " << cb.stateString() << std::endl;
+
+    std::cout << "CircuitBreaker stress test passed!" << std::endl;
+}
+
+void stressTestRateLimiter() {
+    std::cout << "=== Stress Testing RateLimiter ===" << std::endl;
+
+    // 多调度器协程压测
+    const int numSchedulers = 4;
+    const int coroutinesPerScheduler = 1000;
+
+    // Test CountingSemaphore
+    {
+        CountingSemaphore sem(100);
+        std::atomic<int> acquired{0};
+        std::atomic<int> completed{0};
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, numSchedulers, 0);
+        runtime.start();
+
+        for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
+            runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
+                for (int i = 0; i < 100; ++i) {
+                    if (sem.tryAcquire(1)) {
+                        ++acquired;
+                        sem.release(1);
+                    }
+                }
+                ++completed;
+                co_return;
+            }());
+        }
+
+        // 等待所有协程完成
+        while (completed < numSchedulers * coroutinesPerScheduler) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        runtime.stop();
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        int totalOps = acquired.load();
+        double opsPerSec = duration > 0 ? (totalOps * 1000.0) / duration : 0;
+
+        std::cout << "  [CountingSemaphore - Coroutine]" << std::endl;
+        std::cout << "    Schedulers: " << numSchedulers << ", Coroutines: " << numSchedulers * coroutinesPerScheduler << std::endl;
+        std::cout << "    Duration: " << duration << "ms" << std::endl;
+        std::cout << "    Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
+        std::cout << "    Acquired: " << acquired << std::endl;
+        assert(sem.available() == 100);
+    }
+
+    // Test TokenBucketLimiter
+    {
+        TokenBucketLimiter limiter(10000000, 100000); // 10M tokens/sec, capacity 100000
+        std::atomic<int> acquired{0};
+        std::atomic<int> completed{0};
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, numSchedulers, 0);
+        runtime.start();
+
+        for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
+            runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
+                for (int i = 0; i < 100; ++i) {
+                    if (limiter.tryAcquire(1)) {
+                        ++acquired;
+                    }
+                }
+                ++completed;
+                co_return;
+            }());
+        }
+
+        while (completed < numSchedulers * coroutinesPerScheduler) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        runtime.stop();
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        int totalOps = numSchedulers * coroutinesPerScheduler * 100;
+        double opsPerSec = duration > 0 ? (totalOps * 1000.0) / duration : 0;
+
+        std::cout << "  [TokenBucketLimiter - Coroutine]" << std::endl;
+        std::cout << "    Schedulers: " << numSchedulers << ", Coroutines: " << numSchedulers * coroutinesPerScheduler << std::endl;
+        std::cout << "    Duration: " << duration << "ms" << std::endl;
+        std::cout << "    Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
+        std::cout << "    Acquired: " << acquired << std::endl;
+    }
+
+    // Test SlidingWindowLimiter
+    {
+        SlidingWindowLimiter limiter(1000000, std::chrono::milliseconds(1000));
+        std::atomic<int> acquired{0};
+        std::atomic<int> completed{0};
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, numSchedulers, 0);
+        runtime.start();
+
+        for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
+            runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
+                for (int i = 0; i < 50; ++i) {
+                    if (limiter.tryAcquire()) {
+                        ++acquired;
+                    }
+                }
+                ++completed;
+                co_return;
+            }());
+        }
+
+        while (completed < numSchedulers * coroutinesPerScheduler) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        runtime.stop();
+
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        int totalOps = numSchedulers * coroutinesPerScheduler * 50;
+        double opsPerSec = duration > 0 ? (totalOps * 1000.0) / duration : 0;
+
+        std::cout << "  [SlidingWindowLimiter - Coroutine]" << std::endl;
+        std::cout << "    Schedulers: " << numSchedulers << ", Coroutines: " << numSchedulers * coroutinesPerScheduler << std::endl;
+        std::cout << "    Duration: " << duration << "ms" << std::endl;
+        std::cout << "    Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
+        std::cout << "    Acquired: " << acquired << std::endl;
+    }
+
+    std::cout << "RateLimiter stress test passed!" << std::endl;
+}
+
+void stressTestPool() {
+    std::cout << "=== Stress Testing Pool ===" << std::endl;
+
+    BlockingObjectPool<int> pool(100);
+    const int numThreads = 8;
+    const int opsPerThread = 50000;
+    std::atomic<int> acquired{0};
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < numThreads; ++t) {
+        threads.emplace_back([&]() {
+            for (int i = 0; i < opsPerThread; ++i) {
+                auto obj = pool.tryAcquireFor(std::chrono::microseconds(1));
+                if (obj) {
+                    ++acquired;
+                    *obj = i;
+                }
+            }
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    int totalOps = numThreads * opsPerThread;
+    double opsPerSec = (totalOps * 1000.0) / duration;
+
+    std::cout << "  Threads: " << numThreads << std::endl;
+    std::cout << "  Total ops: " << totalOps << std::endl;
+    std::cout << "  Duration: " << duration << "ms" << std::endl;
+    std::cout << "  Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
+    std::cout << "  Acquired: " << acquired << std::endl;
+    std::cout << "  Pool available: " << pool.available() << std::endl;
+
+    assert(pool.available() == 100);
+
+    std::cout << "Pool stress test passed!" << std::endl;
+}
+
+void stressTestThreadPool() {
+    std::cout << "=== Stress Testing ThreadPool ===" << std::endl;
+
+    ThreadPool pool(8);
+    const int numTasks = 100000;
+    std::atomic<int> completed{0};
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (int i = 0; i < numTasks; ++i) {
+        pool.execute([&completed]() {
+            ++completed;
+        });
+    }
+
+    pool.waitAll();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    double tasksPerSec = (numTasks * 1000.0) / duration;
+
+    std::cout << "  Thread count: " << pool.threadCount() << std::endl;
+    std::cout << "  Total tasks: " << numTasks << std::endl;
+    std::cout << "  Duration: " << duration << "ms" << std::endl;
+    std::cout << "  Throughput: " << std::fixed << std::setprecision(0) << tasksPerSec << " tasks/sec" << std::endl;
+    std::cout << "  Completed: " << completed << std::endl;
+
+    assert(completed == numTasks);
+
+    std::cout << "ThreadPool stress test passed!" << std::endl;
+}
+
 // ==================== Main ====================
 int main() {
     std::cout << "\n========================================" << std::endl;
@@ -1395,6 +1707,16 @@ int main() {
         testMurmurHash3();
         testSaltGenerator();
         testLoadBalancer();
+
+        // Stress tests
+        std::cout << "\n========================================" << std::endl;
+        std::cout << "    Stress Tests" << std::endl;
+        std::cout << "========================================\n" << std::endl;
+
+        stressTestCircuitBreaker();
+        stressTestRateLimiter();
+        stressTestPool();
+        stressTestThreadPool();
 
         std::cout << "\n========================================" << std::endl;
         std::cout << "    All tests passed!" << std::endl;

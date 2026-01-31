@@ -84,6 +84,10 @@ public:
 
     bool isStopped() const { return m_stopped; }
 
+    /**
+     * @brief 阻塞等待所有任务完成
+     * @warning 会阻塞当前线程，不要在协程中使用
+     */
     void waitAll() {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_completionCv.wait(lock, [this] {
@@ -186,11 +190,19 @@ public:
         });
     }
 
+    /**
+     * @brief 阻塞等待所有任务完成
+     * @warning 会阻塞当前线程，不要在协程中使用
+     */
     void wait() {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_cv.wait(lock, [this] { return m_count == 0; });
     }
 
+    /**
+     * @brief 带超时的阻塞等待
+     * @warning 会阻塞当前线程，不要在协程中使用
+     */
     template<typename Rep, typename Period>
     bool waitFor(const std::chrono::duration<Rep, Period>& timeout) {
         std::unique_lock<std::mutex> lock(m_mutex);

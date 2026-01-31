@@ -202,6 +202,10 @@ public:
     BlockingObjectPool(const BlockingObjectPool&) = delete;
     BlockingObjectPool& operator=(const BlockingObjectPool&) = delete;
 
+    /**
+     * @brief 阻塞获取对象
+     * @warning 会阻塞当前线程，不要在协程中使用
+     */
     Ptr acquire() {
         std::unique_lock<std::mutex> lock(m_mutex);
         m_cv.wait(lock, [this] { return !m_pool.empty(); });
@@ -223,6 +227,10 @@ public:
         });
     }
 
+    /**
+     * @brief 带超时的阻塞获取
+     * @warning 会阻塞当前线程，不要在协程中使用
+     */
     template<typename Rep, typename Period>
     Ptr tryAcquireFor(const std::chrono::duration<Rep, Period>& timeout) {
         std::unique_lock<std::mutex> lock(m_mutex);
