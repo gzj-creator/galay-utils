@@ -1,0 +1,34 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "AppleClang",
+	"compiler-simulate-id" : "",
+	"config" : "",
+	"cxx-modules" : {},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test",
+	"dir-cur-src" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/test",
+	"dir-top-bld" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod",
+	"dir-top-src" : "/Users/gongzhijie/Desktop/projects/git/galay-utils",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"/Users/gongzhijie/Desktop/projects/git/galay-utils/test/..",
+		"/Users/gongzhijie/Desktop/projects/git/galay-utils"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : 
+	[
+		"/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/galay-utils-modules.dir"
+	],
+	"module-dir" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/test_import_smoke.dir",
+	"sources" : 
+	{
+		"test/CMakeFiles/test_import_smoke.dir/module_import_smoke.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/test/module_import_smoke.cpp"
+		}
+	}
+}

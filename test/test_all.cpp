@@ -396,7 +396,7 @@ void testRateLimiter() {
     assert(slidingWindow.tryAcquire()); // Should work after window expires
 
     // 协程环境测试
-    galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, 2, 0);
+    galay::kernel::Runtime runtime(2, 0);
     runtime.start();
 
     CountingSemaphore asyncSem(2);
@@ -1476,7 +1476,7 @@ void stressTestRateLimiter() {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, numSchedulers, 0);
+        galay::kernel::Runtime runtime(numSchedulers, 0);
         runtime.start();
 
         for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
@@ -1521,7 +1521,7 @@ void stressTestRateLimiter() {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, numSchedulers, 0);
+        galay::kernel::Runtime runtime(numSchedulers, 0);
         runtime.start();
 
         for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
@@ -1563,7 +1563,7 @@ void stressTestRateLimiter() {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        galay::kernel::Runtime runtime(galay::kernel::LoadBalanceStrategy::ROUND_ROBIN, numSchedulers, 0);
+        galay::kernel::Runtime runtime(numSchedulers, 0);
         runtime.start();
 
         for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {

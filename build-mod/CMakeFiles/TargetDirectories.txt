@@ -1,0 +1,15 @@
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/test.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/edit_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/rebuild_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/list_install_components.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/install.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/install/local.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/install/strip.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/test_all.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/test.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/edit_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/rebuild_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/list_install_components.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/install.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/install/local.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/CMakeFiles/install/strip.dir

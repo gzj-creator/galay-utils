@@ -1,0 +1,21 @@
+Start testing: Feb 15 01:33 CST
+----------------------------------------------------------
+1/1 Testing: AllTests
+1/1 Test: AllTests
+Command: "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/test_all"
+Directory: /Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test
+"AllTests" start time: Feb 15 01:33 CST
+Output:
+----------------------------------------------------------
+dyld[69776]: Library not loaded: @rpath/libgalay-kernel.1.dylib
+  Referenced from: <8AA92999-2EBA-3425-9479-67EC074986A6> /Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/test/test_all
+  Reason: no LC_RPATH's found
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Failed.
+"AllTests" end time: Feb 15 01:33 CST
+"AllTests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Feb 15 01:33 CST

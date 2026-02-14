@@ -1,0 +1,46 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "AppleClang",
+	"compiler-simulate-id" : "",
+	"config" : "",
+	"cxx-modules" : 
+	{
+		"CMakeFiles/galay-utils-modules.dir/galay-utils/module/galay.utils.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "include/galay-utils/module",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "galay-utils/module",
+			"source" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/galay-utils/module/galay.utils.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		}
+	},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod",
+	"dir-cur-src" : "/Users/gongzhijie/Desktop/projects/git/galay-utils",
+	"dir-top-bld" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod",
+	"dir-top-src" : "/Users/gongzhijie/Desktop/projects/git/galay-utils",
+	"exports" : 
+	[
+		{
+			"cxx-module-info-dir" : "",
+			"destination" : "lib/cmake/galay-utils",
+			"export-name" : "galay-utils-modules",
+			"export-prefix" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/Export/be362325bb538b6b6194597d1e464011",
+			"filesystem-export-name" : "galay-utils-modules",
+			"install" : true,
+			"namespace" : "galay::"
+		}
+	],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"/Users/gongzhijie/Desktop/projects/git/galay-utils"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod/CMakeFiles/galay-utils-modules.dir",
+	"sources" : {}
+}

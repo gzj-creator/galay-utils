@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-mod",
+  "command": "/usr/bin/c++ -I/Users/gongzhijie/Desktop/projects/git/galay-utils/test/.. -std=c++2b -o test/CMakeFiles/test_all.dir/test_all.cpp.o -c /Users/gongzhijie/Desktop/projects/git/galay-utils/test/test_all.cpp",
+  "file": "/Users/gongzhijie/Desktop/projects/git/galay-utils/test/test_all.cpp",
+  "output": "test/CMakeFiles/test_all.dir/test_all.cpp.o"
+}
+]
