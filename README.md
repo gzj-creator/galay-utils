@@ -155,6 +155,32 @@ int main() {
 |------|--------|------|
 | `BUILD_TESTS` | `OFF` | 构建测试套件 |
 
+## C++23 模块支持更新（2026-02）
+
+本次已将模块接口统一为现代 C++ 范式：
+
+- `module;`
+- `#include "galay-utils/module/ModulePrelude.hpp"`
+- `export module galay.utils;`
+- `export { #include ... }`
+
+模块接口文件：`galay-utils/module/galay.utils.cppm`  
+预导入头文件：`galay-utils/module/ModulePrelude.hpp`
+
+推荐构建条件：
+
+- CMake `>= 3.28`
+- `Ninja` 或 `Visual Studio` 生成器
+- Clang 工具链需可用 `clang-scan-deps`
+
+示例（Clang 20）：
+
+```bash
+cmake -S . -B build-mod -G Ninja \
+  -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@20/bin/clang++
+cmake --build build-mod --target galay-utils-modules -j
+```
+
 ```bash
 # 构建测试
 cmake -DBUILD_TESTS=ON ..

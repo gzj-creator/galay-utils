@@ -1,3 +1,7 @@
+module;
+
+#include "galay-utils/module/ModulePrelude.hpp"
+
 export module galay.utils;
 
 export {
