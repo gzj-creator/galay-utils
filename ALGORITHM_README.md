@@ -184,7 +184,7 @@ uint32_t shardId = MurmurHash3Util::Hash32(userId) % numShards;
 ```bash
 mkdir build && cd build
 cmake -DBUILD_TESTS=ON ..
-make
+cmake --build . --parallel
 ```
 
 ### 运行测试

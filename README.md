@@ -49,11 +49,22 @@
 
 ## 快速开始
 
+### 环境准备（macOS / Linux）
+
+```bash
+# macOS (Homebrew)
+brew install cmake
+
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y cmake g++
+```
+
 ### 使用CMake构建
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/galay-utils.git
+git clone https://github.com/gzj-creator/galay-utils.git
 cd galay-utils
 
 # 创建构建目录
@@ -61,10 +72,10 @@ mkdir build && cd build
 
 # 配置和构建
 cmake ..
-make
+cmake --build . --parallel
 
 # 运行测试
-make test
+ctest --output-on-failure
 ```
 
 ### 集成到您的项目
@@ -72,7 +83,7 @@ make test
 #### 方法1: 作为子模块
 
 ```bash
-git submodule add https://github.com/your-repo/galay-utils.git third_party/galay-utils
+git submodule add https://github.com/gzj-creator/galay-utils.git third_party/galay-utils
 ```
 
 在CMakeLists.txt中添加：
@@ -88,7 +99,8 @@ target_link_libraries(your_target galay-utils)
 cd galay-utils
 mkdir build && cd build
 cmake ..
-make install
+cmake --build . --parallel
+sudo cmake --install .
 ```
 
 然后在您的项目中使用：
@@ -178,14 +190,14 @@ int main() {
 ```bash
 cmake -S . -B build-mod -G Ninja \
   -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@20/bin/clang++
-cmake --build build-mod --target galay-utils-modules -j
+cmake --build build-mod --target galay-utils-modules --parallel
 ```
 
 ```bash
 # 构建测试
 cmake -DBUILD_TESTS=ON ..
-make
-make test
+cmake --build . --parallel
+ctest --output-on-failure
 ```
 
 ## 文档
@@ -213,7 +225,7 @@ make test
 
 ## 许可证
 
-本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+本项目采用 MIT 许可证。
 
 ## 贡献
 
@@ -227,7 +239,7 @@ make test
 
 ## 作者
 
-- **Your Name** - *Initial work* - [your-github](https://github.com/your-github)
+- galay-utils contributors
 
 ## 性能优化特性
 

@@ -4,3 +4,5 @@ cmake-build-*/
 out/
 bin/
 lib/
+
+.claude/
