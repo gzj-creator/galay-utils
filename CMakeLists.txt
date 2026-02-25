@@ -106,6 +106,11 @@ install(EXPORT galay-utils-targets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/galay-utils
 )
 
+option(BUILD_EXAMPLES "Build example executables" ON)
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
 # Option to build tests
 option(BUILD_TESTS "Build tests" OFF)
 

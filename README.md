@@ -202,26 +202,46 @@ ctest --output-on-failure
 
 ## 文档
 
-详细文档请查看 [docs/](docs/) 目录：
+### 入门指南
 
-- [String 模块](docs/string.md)
-- [Random 模块](docs/random.md)
-- [System 模块](docs/system.md)
-- [Thread 模块](docs/thread.md)
-- [Pool 模块](docs/pool.md)
-- [RateLimiter 模块](docs/ratelimiter.md)
-- [CircuitBreaker 模块](docs/circuitbreaker.md)
-- [ConsistentHash 模块](docs/consistent_hash.md)
-- [Balancer 模块](docs/balancer.md)
-- [Trie 模块](docs/trie.md)
-- [MVCC 模块](docs/mvcc.md)
-- [Parser 模块](docs/parser.md)
-- [App 模块](docs/app.md)
-- [Process 模块](docs/process.md)
-- [Signal 模块](docs/signal.md)
-- [BackTrace 模块](docs/backtrace.md)
-- [Huffman 模块](docs/huffman.md)
-- [TypeName 模块](docs/typename.md)
+- [快速开始](docs/00-快速开始.md) - 安装、集成和基本使用
+- [架构设计](docs/01-架构设计.md) - 整体架构和模块关系
+- [API 索引](docs/02-API索引.md) - 所有模块的 API 概览
+- [示例代码](docs/03-示例代码.md) - 实用示例和最佳实践
+- [高级主题](docs/04-高级主题.md) - 性能优化和设计模式
+- [常见问题](docs/05-常见问题.md) - 疑难解答和调试技巧
+
+### 模块文档
+
+**核心工具:**
+- [String](docs/string.md) - 字符串处理工具
+- [Random](docs/random.md) - 随机数生成器
+- [System](docs/system.md) - 系统级功能
+- [TypeName](docs/typename.md) - 类型名称提取
+
+**数据结构:**
+- [TrieTree](docs/trie.md) - 前缀树
+- [ConsistentHash](docs/consistent_hash.md) - 一致性哈希
+- [Mvcc](docs/mvcc.md) - 多版本并发控制
+- [Huffman](docs/huffman.md) - 霍夫曼编码
+
+**并发编程:**
+- [Thread](docs/thread.md) - 线程池和线程安全容器
+- [Pool](docs/pool.md) - 对象池
+
+**网络与分布式:**
+- [RateLimiter](docs/ratelimiter.md) - 速率限制器
+- [CircuitBreaker](docs/circuitbreaker.md) - 熔断器
+- [Balancer](docs/balancer.md) - 负载均衡
+
+**应用框架:**
+- [App](docs/app.md) - 命令行参数解析
+- [Parser](docs/parser.md) - 配置文件解析
+
+**系统集成:**
+- [Process](docs/process.md) - 进程管理
+- [Signal](docs/signal.md) - 信号处理
+- [BackTrace](docs/backtrace.md) - 栈追踪
 
 ## 许可证
 

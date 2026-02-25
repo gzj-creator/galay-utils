@@ -24,7 +24,9 @@ if (sem.tryAcquire(2)) {
 }
 
 // 协程异步获取
-co_await sem.acquire(2);
+if (auto __await_result = co_await sem.acquire(2); !__await_result) {
+    // 错误处理：记录日志、重试或提前返回
+}
 sem.release(2);
 
 // 带超时
@@ -45,7 +47,9 @@ if (bucket.tryAcquire(5)) {
 }
 
 // 协程异步获取
-co_await bucket.acquire(5);
+if (auto __await_result = co_await bucket.acquire(5); !__await_result) {
+    // 错误处理：记录日志、重试或提前返回
+}
 
 // 带超时
 auto result = co_await bucket.acquire(5).timeout(100ms);
@@ -62,7 +66,9 @@ if (window.tryAcquire()) {
 }
 
 // 协程异步获取
-co_await window.acquire();
+if (auto __await_result = co_await window.acquire(); !__await_result) {
+    // 错误处理：记录日志、重试或提前返回
+}
 
 // 带超时
 auto result = co_await window.acquire().timeout(50ms);
@@ -79,7 +85,9 @@ if (leaky.tryAcquire()) {
 }
 
 // 协程异步获取
-co_await leaky.acquire();
+if (auto __await_result = co_await leaky.acquire(); !__await_result) {
+    // 错误处理：记录日志、重试或提前返回
+}
 ```
 
 ## 性能
