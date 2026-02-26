@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/cmake_install.cmake",
+		"/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples",
+  "command": "/usr/bin/c++  -I/Users/gongzhijie/Desktop/projects/git/galay-utils -O3 -DNDEBUG -std=c++2b -arch arm64 -o CMakeFiles/E1-BasicUsage.dir/include/E1-BasicUsage.cpp.o -c /Users/gongzhijie/Desktop/projects/git/galay-utils/examples/include/E1-BasicUsage.cpp",
+  "file": "/Users/gongzhijie/Desktop/projects/git/galay-utils/examples/include/E1-BasicUsage.cpp",
+  "output": "examples/CMakeFiles/E1-BasicUsage.dir/include/E1-BasicUsage.cpp.o"
+}
+]

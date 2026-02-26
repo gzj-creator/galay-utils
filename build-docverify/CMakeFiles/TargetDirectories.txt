@@ -1,0 +1,13 @@
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/CMakeFiles/edit_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/CMakeFiles/rebuild_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/CMakeFiles/list_install_components.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/CMakeFiles/install.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/CMakeFiles/install/local.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/CMakeFiles/install/strip.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/E1-BasicUsage.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/edit_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/rebuild_cache.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/list_install_components.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/install.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/install/local.dir
+/Users/gongzhijie/Desktop/projects/git/galay-utils/build-docverify/examples/CMakeFiles/install/strip.dir
