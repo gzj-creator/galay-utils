@@ -6,4 +6,6 @@ out/
 bin/
 lib/
 
+# IDE and cache
 .claude/
+.cache/
