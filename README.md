@@ -1,282 +1,178 @@
 # galay-utils
 
-[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
-[![CMake](https://img.shields.io/badge/CMake-3.16+-green.svg)](https://cmake.org/)
+[![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)](https://en.cppreference.com/w/cpp/23)
+[![CMake](https://img.shields.io/badge/CMake-3.16%2B-green.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-一个现代化的C++20工具库，提供常用功能的高性能实现。
+一个以公开头文件、真实 target、真实示例与测试为准的 C++23 工具库文档入口。
 
-## 特性
+## 仓库真相速览
 
-- **现代化C++**: 使用C++20特性，提供类型安全和性能优化
-- **跨平台**: 支持Linux、macOS和Windows
-- **无依赖**: 纯头文件库，无外部依赖
-- **高性能**: 针对性能优化，提供高效实现
-- **易使用**: 简洁的API设计，完善的文档
+| 项目 | 当前真实状态 |
+|---|---|
+| C++ 标准 | `CMAKE_CXX_STANDARD 23` |
+| 基线 CMake | `3.16+`，但若保留默认 `BUILD_MODULE_TESTS=ON`，配置阶段需要 `3.28+` |
+| 导出 target | `galay-utils`（INTERFACE）；满足条件时额外生成 `galay-utils-modules` |
+| 真实示例 | `E1-BasicUsage`、`E2-SystemProcess`、`E3-ParserBalancer` |
+| 真实 benchmark | `benchmark/B1-core_benchmark.cpp` → target `B1-CoreBench` |
+| 真实测试 | `test/test_all.cpp` → target `test_all`；可选模块烟雾测试 `test_import_smoke` |
+| Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
+| 额外头依赖 | 使用 `galay-utils/galay-utils.hpp`、`galay-utils/ratelimiter/RateLimiter.hpp` 或 `import galay.utils;` 时，需要 `galay-kernel` 与 `concurrentqueue/moodycamel` 头文件 |
+| 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
-## 模块
+## 模块概览
 
-### 核心工具
-- **String**: 字符串处理工具（分割、连接、修剪、转换等）
-- **Random**: 高质量随机数生成器
-- **System**: 系统级功能（文件、时间、环境变量等）
-
-### 数据结构
-- **TrieTree**: 前缀树实现
-- **ConsistentHash**: 一致性哈希算法
-- **Mvcc**: 多版本并发控制
-
-### 并发编程
-- **Thread**: 线程池和线程安全容器
-- **Pool**: 对象池和阻塞对象池
-
-### 网络与分布式
-- **RateLimiter**: 多算法速率限制器
-- **CircuitBreaker**: 熔断器模式实现
-- **Balancer**: 多种负载均衡算法
-
-### 编码与压缩
-- **Huffman**: 霍夫曼编码算法
-
-### 应用框架
-- **App**: 命令行参数解析
-- **Parser**: 配置文件解析（INI、环境变量）
-
-### 系统集成
-- **Process**: 进程管理
-- **SignalHandler**: 信号处理
-- **BackTrace**: 栈追踪
+- 核心工具：`StringUtils`、`Randomizer`、`System`、`BackTrace`、`SignalHandler`
+- 并发与资源：`ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>`、`ObjectPool<T>`、`BlockingObjectPool<T>`
+- 流控与容错：`CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter`、`CircuitBreaker`
+- 路由与分布式：`RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>`、`ConsistentHash`
+- 数据结构：`TrieTree`、`Mvcc<T>`、`Snapshot`、`Transaction<T>`、`Huffman*`
+- 应用与系统：`App` / `Cmd` / `Arg`、`ConfigParser`、`EnvParser`、`ParserManager`、`Process`
+- 算法：`Base64Util`、`MD5Util`、`MurmurHash3Util`、`SaltGenerator`、`SHA256`、`HMAC`
 
 ## 快速开始
 
-### 环境准备（macOS / Linux）
+### 1. 仅验证基础配置
+
+前置条件：
+
+- 编译器支持 C++23
+- CMake `>= 3.16`
+- 如果你只想验证头文件布局，建议显式关闭模块测试，避免默认 `BUILD_MODULE_TESTS=ON` 在 CMake `< 3.28` 时直接失败
 
 ```bash
-# macOS (Homebrew)
-brew install cmake
-
-# Ubuntu/Debian
-sudo apt-get update
-sudo apt-get install -y cmake g++
-```
-
-### 使用CMake构建
-
-```bash
-# 克隆仓库
 git clone https://github.com/gzj-creator/galay-utils.git
 cd galay-utils
 
-# 创建构建目录
-mkdir build && cd build
+cmake -S . -B build \
+  -DBUILD_MODULE_TESTS=OFF \
+  -DBUILD_EXAMPLES=OFF \
+  -DBUILD_TESTS=OFF
 
-# 配置和构建
-cmake ..
-cmake --build . --parallel
-
-# 运行测试
-ctest --output-on-failure
+cmake --build build --parallel
 ```
 
-### 集成到您的项目
+### 2. 构建真实示例 `E1-BasicUsage`
 
-#### 方法1: 作为子模块
+前置条件：
+
+- 编译器支持 C++23
+- CMake `>= 3.16`
+- `examples/include/E1-basic_usage.cpp` 使用 umbrella header `galay-utils/galay-utils.hpp`
+- 因此编译该示例时需要能找到 `galay-kernel` 和 `concurrentqueue/moodycamel` 头文件
 
 ```bash
-git submodule add https://github.com/gzj-creator/galay-utils.git third_party/galay-utils
+cmake -S . -B build-examples \
+  -DBUILD_MODULE_TESTS=OFF \
+  -DBUILD_EXAMPLES=ON \
+  -DBUILD_TESTS=OFF
+
+cmake --build build-examples --target E1-BasicUsage --parallel
+./build-examples/examples/E1-BasicUsage
 ```
 
-在CMakeLists.txt中添加：
+示例真相来源：
 
-```cmake
-add_subdirectory(third_party/galay-utils)
-target_link_libraries(your_target galay-utils)
-```
+- 源文件：`examples/include/E1-basic_usage.cpp`
+- target：`E1-BasicUsage`
+- 环境变量：无
 
-#### 方法2: 安装库
+### 3. 构建真实测试
+
+前置条件：
+
+- 编译器支持 C++23
+- CMake `>= 3.16`
+- `test/test_all.cpp` 直接包含 umbrella header
+- `galay-kernel` 头文件与库可用；若未安装到默认前缀，请通过 `-DCMAKE_PREFIX_PATH=/path/to/prefix` 让 CMake 发现 `galay-kernel-config.cmake`
 
 ```bash
-cd galay-utils
-mkdir build && cd build
-cmake ..
-cmake --build . --parallel
-sudo cmake --install .
+cmake -S . -B build-test \
+  -DBUILD_MODULE_TESTS=OFF \
+  -DBUILD_EXAMPLES=OFF \
+  -DBUILD_TESTS=ON
+
+cmake --build build-test --target test_all --parallel
+ctest --test-dir build-test --output-on-failure
 ```
 
-然后在您的项目中使用：
+说明：
 
-```cmake
-find_package(galay-utils REQUIRED)
-target_link_libraries(your_target galay::galay-utils)
-```
+- `test/CMakeLists.txt` 现优先导入 `galay-kernel::galay-kernel`
+- macOS 构建会把该共享库目录写入测试 target 的 `BUILD_RPATH`
+- 因此在默认 `/usr/local` 安装下，`ctest --test-dir build-test` 不需要额外 `DYLD_LIBRARY_PATH`
 
-#### 方法3: Bazel安装
+### 4. 构建 C++23 模块烟雾测试
 
-```bash
-# 构建头文件包
-bazel build //:headers
-
-# 手动复制头文件到系统目录
-sudo cp -r bazel-bin/headers/** /usr/local/include/galay-utils/
-```
-
-然后在BUILD.bazel中使用：
-
-```python
-cc_library(
-    name = "my_library",
-    hdrs = ["my_header.h"],
-    deps = ["@galay_utils//:galay-utils"],
-)
-```
-
-### 基本使用
-
-```cpp
-#include <galay-utils/galay-utils.hpp>
-#include <iostream>
-
-using namespace galay::utils;
-
-int main() {
-    // 字符串处理
-    auto parts = StringUtils::split("hello,world", ',');
-    std::cout << StringUtils::join(parts, " ") << std::endl;
-
-    // 随机数生成
-    auto& rng = Randomizer::instance();
-    int random_num = rng.randomInt(1, 100);
-
-    // 系统信息
-    std::cout << "CPU cores: " << System::cpuCount() << std::endl;
-    std::cout << "Hostname: " << System::hostname() << std::endl;
-
-    return 0;
-}
-```
-
-## 构建要求
-
-- **C++编译器**: 支持C++20 (GCC 10+, Clang 10+, MSVC 2019 16.8+)
-- **构建工具**: CMake 3.16+
-- **操作系统**: Linux, macOS, Windows
-
-## 构建选项
-
-| 选项 | 默认值 | 描述 |
-|------|--------|------|
-| `BUILD_TESTS` | `OFF` | 构建测试套件 |
-
-## C++23 模块支持更新（2026-02）
-
-本次已将模块接口统一为现代 C++ 范式：
-
-- `module;`
-- `#include "galay-utils/module/ModulePrelude.hpp"`
-- `export module galay.utils;`
-- `export { #include ... }`
-
-模块接口文件：`galay-utils/module/galay.utils.cppm`  
-预导入头文件：`galay-utils/module/ModulePrelude.hpp`
-
-推荐构建条件：
+前置条件：
 
 - CMake `>= 3.28`
 - `Ninja` 或 `Visual Studio` 生成器
-- Clang 工具链需可用 `clang-scan-deps`
-
-示例（Clang 20）：
+- 非 `AppleClang`
+- 可用的 C++23 模块扫描工具链
+- 仍然需要 `galay-kernel` / `concurrentqueue` 头文件，因为模块接口导出了 `RateLimiter.hpp`
 
 ```bash
 cmake -S . -B build-mod -G Ninja \
-  -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@20/bin/clang++
-cmake --build build-mod --target galay-utils-modules --parallel
+  -DCMAKE_CXX_COMPILER=clang++ \
+  -DBUILD_TESTS=ON \
+  -DBUILD_MODULE_TESTS=ON \
+  -DBUILD_EXAMPLES=OFF
+
+cmake --build build-mod --target test_import_smoke --parallel
+ctest --test-dir build-mod -R ModuleImportSmoke --output-on-failure
 ```
 
-```bash
-# 构建测试
-cmake -DBUILD_TESTS=ON ..
-cmake --build . --parallel
-ctest --output-on-failure
+## 集成方式
+
+### CMake 子目录
+
+```cmake
+add_subdirectory(third_party/galay-utils)
+target_link_libraries(your_target PRIVATE galay-utils)
 ```
 
-## 文档
+### 已安装包
 
-### 入门指南
+```cmake
+find_package(galay-utils REQUIRED)
+target_link_libraries(your_target PRIVATE galay::galay-utils)
+```
 
-- [快速开始](docs/00-快速开始.md) - 安装、集成和基本使用
-- [架构设计](docs/01-架构设计.md) - 整体架构和模块关系
-- [API 索引](docs/02-API索引.md) - 所有模块的 API 概览
-- [示例代码](docs/03-示例代码.md) - 实用示例和最佳实践
-- [高级主题](docs/04-高级主题.md) - 性能优化和设计模式
-- [常见问题](docs/05-常见问题.md) - 疑难解答和调试技巧
+### 头文件选择建议
 
-### 模块文档
+- 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/string/String.hpp`
+- 只有在确认具备 `galay-kernel` 与 `concurrentqueue` 头文件时，再使用 umbrella header `galay-utils/galay-utils.hpp`
+- 只有在工具链满足模块要求时，再使用 `import galay.utils;`
 
-**核心工具:**
-- [String](docs/string.md) - 字符串处理工具
-- [Random](docs/random.md) - 随机数生成器
-- [System](docs/system.md) - 系统级功能
-- [TypeName](docs/typename.md) - 类型名称提取
+## 依赖边界
 
-**数据结构:**
-- [TrieTree](docs/trie.md) - 前缀树
-- [ConsistentHash](docs/consistent_hash.md) - 一致性哈希
-- [Mvcc](docs/mvcc.md) - 多版本并发控制
-- [Huffman](docs/huffman.md) - 霍夫曼编码
+- `galay-utils` 是接口库，但并不等于“所有入口都无外部依赖”
+- `galay-utils/galay-utils.hpp` 会聚合 `RateLimiter.hpp`，而后者无条件包含 `galay-kernel` 与 `concurrentqueue/moodycamel`
+- `RateLimiter` 的 `tryAcquire()` 与 `acquire()` 都在同一个公开头中，因此即使你只用非阻塞接口，编译该头仍需要上述外部头文件
+- `test/test_all.cpp` 与 `test/module_import_smoke.cpp` 在 CMake 中还额外链接 `galay-kernel`
 
-**并发编程:**
-- [Thread](docs/thread.md) - 线程池和线程安全容器
-- [Pool](docs/pool.md) - 对象池
+## 文档导航
 
-**网络与分布式:**
-- [RateLimiter](docs/ratelimiter.md) - 速率限制器
-- [CircuitBreaker](docs/circuitbreaker.md) - 熔断器
-- [Balancer](docs/balancer.md) - 负载均衡
+- [文档首页](docs/README.md)
+- [00-快速开始](docs/00-快速开始.md)
+- [01-架构设计](docs/01-架构设计.md)
+- [02-API参考](docs/02-API参考.md)
+- [03-使用指南](docs/03-使用指南.md)
+- [04-示例代码](docs/04-示例代码.md)
+- [05-性能测试](docs/05-性能测试.md)
+- [06-高级主题](docs/06-高级主题.md)
+- [07-常见问题](docs/07-常见问题.md)
 
-**应用框架:**
-- [App](docs/app.md) - 命令行参数解析
-- [Parser](docs/parser.md) - 配置文件解析
+历史专题页已经收敛进编号文档，避免同一概念在多个页面重复出现并干扰 RAG 检索。当前官方导航只保留上面的 canonical 文档集合。
 
-**系统集成:**
-- [Process](docs/process.md) - 进程管理
-- [Signal](docs/signal.md) - 信号处理
-- [BackTrace](docs/backtrace.md) - 栈追踪
+## 已知限制
 
-## 许可证
+- 仓库现提供 `benchmark/` 与 `B1-CoreBench`；旧文档中的历史吞吐量表仍不被视为当前官方结果，应以源码和固定命令的本地输出为准
+- 默认 `BUILD_MODULE_TESTS=ON` 会让 CMake `< 3.28` 的默认配置失败；基线构建请显式传 `-DBUILD_MODULE_TESTS=OFF`
+- 四个 `LoadBalancer` 的 `select()` 都返回 `std::optional<T>` 按值，不属于零拷贝 API
+- 只有 `RoundRobinLoadBalancer<T>::select()` 在节点集合不再变更时适合并发共享；并发 `append()` 以及其余三种 balancer 的共享实例都需要外部同步
 
-本项目采用 MIT 许可证。
+## 许可
 
-## 贡献
-
-欢迎提交Issue和Pull Request！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
-
-## 作者
-
-- galay-utils contributors
-
-## 性能优化特性
-
-### 🚀 高性能设计
-
-- **零拷贝文件读取**: 使用预分配内存避免不必要的拷贝操作
-- **智能锁竞争**: 参数验证在加锁前进行，减少锁竞争
-- **内存预分配**: 字符串生成使用预分配策略提升性能
-- **边界检查优化**: 提前返回无效参数，避免不必要的计算
-
-### 📊 优化亮点
-
-- **随机数生成器**: 参数检查前置，避免无效参数的锁竞争
-- **字符串处理**: 修复边界情况，优化分割算法
-- **文件操作**: 使用`std::ios::ate`实现高效的文件大小获取和读取
-
-## 致谢
-
-- 感谢所有贡献者
-- 感谢开源社区提供的技术支持
+MIT

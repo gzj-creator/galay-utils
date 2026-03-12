@@ -1,708 +1,580 @@
-# 02-API索引
-
-本文档提供所有模块的快速索引和 API 概览。详细文档请查看各模块的独立文档。
-
-## 核心工具
-
-### String 模块
-
-字符串处理工具，提供分割、连接、修剪、转换等功能。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class StringUtils {
-        // 分割和连接
-        static std::vector<std::string> split(const std::string& str, char delimiter);
-        static std::vector<std::string> split(const std::string& str, const std::string& delimiter);
-        static std::string join(const std::vector<std::string>& parts, const std::string& separator);
-
-        // 修剪
-        static std::string trim(const std::string& str);
-        static std::string trimLeft(const std::string& str);
-        static std::string trimRight(const std::string& str);
-
-        // 大小写转换
-        static std::string toLower(const std::string& str);
-        static std::string toUpper(const std::string& str);
-
-        // 查找和检查
-        static bool startsWith(const std::string& str, const std::string& prefix);
-        static bool endsWith(const std::string& str, const std::string& suffix);
-        static bool contains(const std::string& str, const std::string& substr);
-        static bool isBlank(const std::string& str);
-
-        // 替换
-        static std::string replace(const std::string& str, const std::string& from, const std::string& to);
-        static std::string replaceFirst(const std::string& str, const std::string& from, const std::string& to);
-
-        // 计数
-        static size_t count(const std::string& str, char ch);
-        static size_t count(const std::string& str, const std::string& substr);
-
-        // 十六进制
-        static std::string toHex(const uint8_t* data, size_t len, bool uppercase = false);
-        static std::vector<uint8_t> fromHex(const std::string& hex);
-        static std::string toVisibleHex(const uint8_t* data, size_t len);
-
-        // 验证
-        static bool isInteger(const std::string& str);
-        static bool isFloat(const std::string& str);
-
-        // 格式化和解析
-        static std::string format(const char* fmt, ...);
-        template<typename T> static T parse(const std::string& str);
-        template<typename T> static std::string toString(const T& value);
-    };
-}
-```
-
-**详细文档:** [string.md](string.md)
-
----
-
-### Random 模块
-
-高质量随机数生成器，线程安全的单例模式。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class Randomizer {
-        static Randomizer& instance();
-
-        // 随机整数
-        int randomInt(int min, int max);
-
-        // 随机浮点数
-        double randomDouble(double min, double max);
-
-        // 随机字符串
-        std::string randomString(size_t length);
-        std::string randomHex(size_t length);
-
-        // UUID
-        std::string uuid();
-
-        // 随机字节
-        void randomBytes(uint8_t* buffer, size_t length);
-    };
-}
-```
-
-**详细文档:** [random.md](random.md)
-
----
-
-### System 模块
-
-系统级功能，包括文件操作、时间、环境变量等。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class System {
-        // 系统信息
-        static size_t cpuCount();
-        static size_t memorySize();
-        static std::string hostname();
-        static int pid();
-        static std::string username();
-
-        // 文件操作
-        static bool fileExists(const std::string& path);
-        static size_t fileSize(const std::string& path);
-        static std::string readFile(const std::string& path);
-        static bool writeFile(const std::string& path, const std::string& content);
-
-        // 时间
-        static int64_t timestamp();
-        static std::string formatTime(int64_t timestamp, const std::string& format);
-
-        // 环境变量
-        static std::string getEnv(const std::string& name);
-        static bool setEnv(const std::string& name, const std::string& value);
-    };
-}
-```
-
-**详细文档:** [system.md](system.md)
-
----
-
-### TypeName 模块
-
-编译期类型名称提取。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    template<typename T>
-    constexpr std::string_view typeName();
-}
-```
-
-**详细文档:** [typename.md](typename.md)
-
----
-
-## 数据结构
-
-### TrieTree 模块
-
-前缀树实现，高效的字符串查找。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class TrieTree {
-        void insert(const std::string& word);
-        bool search(const std::string& word) const;
-        bool startsWith(const std::string& prefix) const;
-        void remove(const std::string& word);
-    };
-}
-```
-
-**详细文档:** [trie.md](trie.md)
-
----
-
-### ConsistentHash 模块
-
-一致性哈希算法，支持虚拟节点。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    template<typename T>
-    class ConsistentHash {
-        ConsistentHash(size_t virtualNodes = 150);
-        void addNode(const T& node);
-        void removeNode(const T& node);
-        std::optional<T> getNode(const std::string& key) const;
-    };
-}
-```
-
-**详细文档:** [consistent_hash.md](consistent_hash.md)
-
----
-
-### Mvcc 模块
-
-多版本并发控制。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    template<typename T>
-    class Mvcc {
-        void write(const T& value);
-        std::optional<T> read() const;
-        std::optional<T> readVersion(uint64_t version) const;
-    };
-}
-```
-
-**详细文档:** [mvcc.md](mvcc.md)
-
----
-
-### Huffman 模块
-
-霍夫曼编码/解码。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class Huffman {
-        static std::string encode(const std::string& data);
-        static std::string decode(const std::string& encoded);
-    };
-}
-```
-
-**详细文档:** [huffman.md](huffman.md)
-
----
-
-### Algorithm 模块
-
-常用算法实现。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    // Base64
-    class Base64 {
-        static std::string encode(const std::string& data);
-        static std::string decode(const std::string& encoded);
-    };
-
-    // MD5
-    class MD5 {
-        static std::string hash(const std::string& data);
-    };
-
-    // HMAC
-    class HMAC {
-        static std::string hmacSha256(const std::string& key, const std::string& data);
-    };
-
-    // MurmurHash3
-    class MurmurHash3 {
-        static uint32_t hash32(const void* key, int len, uint32_t seed = 0);
-        static void hash128(const void* key, int len, uint32_t seed, void* out);
-    };
-
-    // Salt
-    class Salt {
-        static std::string generate(size_t length = 16);
-        static std::string hashPassword(const std::string& password, const std::string& salt);
-    };
-}
-```
-
----
-
-## 并发编程
-
-### Thread 模块
-
-线程池和线程安全容器。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class ThreadPool {
-        ThreadPool(size_t numThreads);
-
-        template<typename F, typename... Args>
-        auto addTask(F&& f, Args&&... args) -> std::future<decltype(f(args...))>;
-    };
-
-    class TaskWaiter {
-        template<typename F, typename... Args>
-        void addTask(ThreadPool& pool, F&& f, Args&&... args);
-
-        void wait();
-    };
-
-    template<typename T>
-    class ThreadSafeList {
-        void pushBack(const T& value);
-        void pushFront(const T& value);
-        std::optional<T> popFront();
-        std::optional<T> popBack();
-        size_t size() const;
-    };
-}
-```
-
-**详细文档:** [thread.md](thread.md)
-
----
-
-### Pool 模块
-
-对象池和阻塞对象池。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    template<typename T>
-    class ObjectPool {
-        ObjectPool(std::function<std::unique_ptr<T>()> factory, size_t size);
-
-        std::unique_ptr<T> acquire();
-        void release(std::unique_ptr<T> obj);
-    };
-
-    template<typename T>
-    class BlockingObjectPool {
-        BlockingObjectPool(std::function<std::unique_ptr<T>()> factory, size_t size);
-
-        std::unique_ptr<T> acquire();
-        void release(std::unique_ptr<T> obj);
-    };
-}
-```
-
-**详细文档:** [pool.md](pool.md)
-
----
-
-## 网络与分布式
-
-### RateLimiter 模块
-
-多算法速率限制器，支持协程异步接口。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    // 计数信号量
-    class CountingSemaphore {
-        CountingSemaphore(size_t maxCount);
-
-        bool tryAcquire(size_t count = 1);
-        void release(size_t count = 1);
-
-        // 协程接口（需要 galay-kernel）
-        CustomAwaitable<bool> acquire(size_t count = 1);
-    };
-
-    // 令牌桶
-    class TokenBucketLimiter {
-        TokenBucketLimiter(double rate, size_t capacity);
-
-        bool tryAcquire(size_t tokens = 1);
-        CustomAwaitable<bool> acquire(size_t tokens = 1);
-    };
-
-    // 滑动窗口
-    class SlidingWindowLimiter {
-        SlidingWindowLimiter(size_t maxRequests, std::chrono::milliseconds window);
-
-        bool tryAcquire();
-        CustomAwaitable<bool> acquire();
-    };
-
-    // 漏桶
-    class LeakyBucketLimiter {
-        LeakyBucketLimiter(double rate, size_t capacity);
-
-        bool tryAcquire();
-        CustomAwaitable<bool> acquire();
-    };
-}
-```
-
-**详细文档:** [ratelimiter.md](ratelimiter.md)
-
----
-
-### CircuitBreaker 模块
-
-熔断器模式实现，无锁原子设计。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    struct CircuitBreakerConfig {
-        size_t failureThreshold = 5;
-        size_t successThreshold = 3;
-        std::chrono::milliseconds resetTimeout = std::chrono::seconds(30);
-    };
-
-    enum class CircuitState {
-        Closed,
-        Open,
-        HalfOpen
-    };
-
-    class CircuitBreaker {
-        CircuitBreaker(const CircuitBreakerConfig& config);
-
-        bool allowRequest();
-        void onSuccess();
-        void onFailure();
-
-        CircuitState state() const;
-        const char* stateString() const;
-
-        template<typename F>
-        auto execute(F&& func) -> decltype(func());
-
-        template<typename F, typename Fallback>
-        auto executeWithFallback(F&& func, Fallback&& fallback) -> decltype(func());
-
-        void reset();
-        void forceOpen();
-    };
-}
-```
-
-**详细文档:** [circuitbreaker.md](circuitbreaker.md)
-
----
-
-### Balancer 模块
-
-多种负载均衡算法。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    // 轮询
-    template<typename T>
-    class RoundRobinLoadBalancer {
-        RoundRobinLoadBalancer(const std::vector<T>& nodes);
-
-        std::optional<T> select();
-        void append(const T& node);
-    };
-
-    // 加权轮询
-    template<typename T>
-    class WeightRoundRobinLoadBalancer {
-        WeightRoundRobinLoadBalancer(const std::vector<T>& nodes, const std::vector<uint32_t>& weights);
-
-        std::optional<T> select();
-    };
-
-    // 随机
-    template<typename T>
-    class RandomLoadBalancer {
-        RandomLoadBalancer(const std::vector<T>& nodes);
-
-        std::optional<T> select();
-        void append(const T& node);
-    };
-
-    // 加权随机
-    template<typename T>
-    class WeightedRandomLoadBalancer {
-        WeightedRandomLoadBalancer(const std::vector<T>& nodes, const std::vector<uint32_t>& weights);
-
-        std::optional<T> select();
-    };
-}
-```
-
-**详细文档:** [balancer.md](balancer.md)
-
----
-
-## 应用框架
-
-### App 模块
-
-命令行参数解析。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class App {
-        App(const std::string& name, const std::string& description);
-
-        void addOption(const std::string& name, const std::string& description, bool required = false);
-        void addFlag(const std::string& name, const std::string& description);
-
-        bool parse(int argc, char* argv[]);
-
-        std::string getOption(const std::string& name) const;
-        bool hasFlag(const std::string& name) const;
-
-        void printHelp() const;
-    };
-}
-```
-
-**详细文档:** [app.md](app.md)
-
----
-
-### Parser 模块
-
-配置文件解析（INI、环境变量）。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class IniParser {
-        bool parse(const std::string& filename);
-
-        std::string get(const std::string& section, const std::string& key) const;
-        bool has(const std::string& section, const std::string& key) const;
-    };
-
-    class EnvParser {
-        static std::string get(const std::string& key);
-        static bool has(const std::string& key);
-    };
-}
-```
-
-**详细文档:** [parser.md](parser.md)
-
----
-
-## 系统集成
-
-### Process 模块
-
-进程管理。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class Process {
-        static int execute(const std::string& command);
-        static std::string executeWithOutput(const std::string& command);
-    };
-}
-```
-
-**详细文档:** [process.md](process.md)
-
----
-
-### Signal 模块
-
-信号处理。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class SignalHandler {
-        static void registerHandler(int signal, std::function<void(int)> handler);
-        static void ignore(int signal);
-        static void reset(int signal);
-    };
-}
-```
-
-**详细文档:** [signal.md](signal.md)
-
----
-
-### BackTrace 模块
-
-栈追踪。
-
-**主要 API:**
-
-```cpp
-namespace galay::utils {
-    class BackTrace {
-        static std::vector<std::string> capture(size_t skip = 0);
-        static void print(std::ostream& os = std::cerr);
-    };
-}
-```
-
-**详细文档:** [backtrace.md](backtrace.md)
-
----
-
-## 快速查找
-
-### 按功能分类
-
-**字符串处理:**
-- [String](string.md) - 字符串工具
-
-**随机数:**
-- [Random](random.md) - 随机数生成
-
-**系统操作:**
-- [System](system.md) - 系统信息和文件操作
-- [Process](process.md) - 进程管理
-- [Signal](signal.md) - 信号处理
-- [BackTrace](backtrace.md) - 栈追踪
-
-**数据结构:**
-- [TrieTree](trie.md) - 前缀树
-- [ConsistentHash](consistent_hash.md) - 一致性哈希
-- [Mvcc](mvcc.md) - 多版本并发控制
-
-**编码压缩:**
-- [Huffman](huffman.md) - 霍夫曼编码
-- Algorithm - Base64, MD5, HMAC, MurmurHash3
-
-**并发编程:**
-- [Thread](thread.md) - 线程池
-- [Pool](pool.md) - 对象池
-
-**网络分布式:**
-- [RateLimiter](ratelimiter.md) - 速率限制
-- [CircuitBreaker](circuitbreaker.md) - 熔断器
-- [Balancer](balancer.md) - 负载均衡
-
-**应用框架:**
-- [App](app.md) - 命令行参数
-- [Parser](parser.md) - 配置解析
-
-**工具:**
-- [TypeName](typename.md) - 类型名称
-
-### 按使用场景
-
-**Web 服务:**
-- RateLimiter - 限流
-- CircuitBreaker - 熔断
-- Balancer - 负载均衡
-- ThreadPool - 并发处理
-
-**数据处理:**
-- String - 字符串处理
-- Huffman - 数据压缩
-- Algorithm - 编码和哈希
-
-**系统工具:**
-- System - 系统信息
-- Process - 进程管理
-- Signal - 信号处理
-- BackTrace - 调试
-
-**配置管理:**
-- Parser - 配置文件
-- App - 命令行参数
-
-**高性能场景:**
-- ObjectPool - 对象复用
-- ConsistentHash - 分布式缓存
-- Mvcc - 并发控制
-
-## 性能参考
-
-| 模块 | 操作 | 性能 |
-|------|------|------|
-| CircuitBreaker | allowRequest | ~10M ops/sec |
-| RateLimiter | tryAcquire | ~3-4M ops/sec |
-| StringUtils | split | ~1M ops/sec |
-| Randomizer | randomInt | ~10M ops/sec |
-| ConsistentHash | getNode | ~1M ops/sec |
-
-## 线程安全性
-
-| 模块 | 线程安全 | 说明 |
-|------|----------|------|
-| String | 是 | 无状态静态方法 |
-| Random | 是 | 内部使用互斥锁 |
-| System | 部分 | 读操作安全，写操作需外部同步 |
-| Thread | 是 | 线程池和线程安全容器 |
-| Pool | 是 | 内部使用互斥锁 |
-| RateLimiter | 是 | 无锁原子操作 |
-| CircuitBreaker | 是 | 无锁原子操作 |
-| Balancer | 部分 | RoundRobin 和 Random 安全 |
-| TrieTree | 否 | 需外部同步 |
-| ConsistentHash | 否 | 需外部同步 |
-| Mvcc | 是 | 多版本并发控制 |
-
-## 依赖关系
-
-```text
-RateLimiter (协程接口) ──> galay-kernel
-其他所有模块 ──> C++20 标准库（无外部依赖）
-```
+# 02-API参考
+
+本页按公开头文件整理当前可见 API。若文档与源码冲突，以 `galay-utils/*.hpp` 为准。
+
+## 1. 公开入口
+
+| 入口 | 真实文件 / target | 说明 |
+|---|---|---|
+| 细粒度头文件 | `galay-utils/<module>/*.hpp` | 推荐作为最小依赖接入面 |
+| umbrella header | `galay-utils/galay-utils.hpp` | 聚合所有公开头，也引入 `RateLimiter` 的外部依赖 |
+| C++23 模块 | `galay-utils/module/galay.utils.cppm` | 通过 `import galay.utils;` 导入，导出面与 umbrella 基本一致 |
+
+完整公开头文件清单：
+
+- `galay-utils/galay-utils.hpp`
+- `galay-utils/string/String.hpp`
+- `galay-utils/random/Random.hpp`
+- `galay-utils/system/System.hpp`
+- `galay-utils/common/TypeName.hpp`
+- `galay-utils/backtrace/BackTrace.hpp`
+- `galay-utils/signal/SignalHandler.hpp`
+- `galay-utils/thread/Thread.hpp`
+- `galay-utils/pool/Pool.hpp`
+- `galay-utils/ratelimiter/RateLimiter.hpp`
+- `galay-utils/circuitbreaker/CircuitBreaker.hpp`
+- `galay-utils/balancer/LoadBalancer.hpp`
+- `galay-utils/consistent_hash/ConsistentHash.hpp`
+- `galay-utils/trie/TrieTree.hpp`
+- `galay-utils/mvcc/Mvcc.hpp`
+- `galay-utils/huffman/Huffman.hpp`
+- `galay-utils/args/App.hpp`
+- `galay-utils/parser/Parser.hpp`
+- `galay-utils/process/Process.hpp`
+- `galay-utils/algorithm/Base64.hpp`
+- `galay-utils/algorithm/MD5.hpp`
+- `galay-utils/algorithm/MurmurHash3.hpp`
+- `galay-utils/algorithm/Salt.hpp`
+- `galay-utils/algorithm/HMAC.hpp`
+- `galay-utils/common/Defn.hpp`
+- `galay-utils/module/ModulePrelude.hpp`
+- `galay-utils/module/galay.utils.cppm`
+
+## 2. 核心工具
+
+| 模块 | 头文件 | 主要类型 / 函数 |
+|---|---|---|
+| String | `galay-utils/string/String.hpp` | `StringUtils` |
+| Random | `galay-utils/random/Random.hpp` | `Randomizer` |
+| System | `galay-utils/system/System.hpp` | `System`、`System::AddressType` |
+| TypeName | `galay-utils/common/TypeName.hpp` | `getTypeName<T>()`、`getTypeName(obj)`、`demangleSymbol()` |
+| BackTrace | `galay-utils/backtrace/BackTrace.hpp` | `BackTrace` |
+| Signal | `galay-utils/signal/SignalHandler.hpp` | `SignalHandler` |
+
+### `StringUtils`
+
+- `split(std::string_view, char)`
+- `split(std::string_view, std::string_view)`
+- `splitRespectQuotes(std::string_view, char, char)`
+- `join(const std::vector<std::string>&, std::string_view)`
+- `trim` / `trimLeft` / `trimRight`
+- `toLower` / `toUpper`
+- `startsWith` / `endsWith` / `contains`
+- `replace` / `replaceFirst`
+- `count(char)` / `count(std::string_view)`
+- `toHex` / `fromHex` / `toVisibleHex`
+- `isInteger` / `isFloat` / `isBlank`
+- `format(...)`
+- `parse<T>(...)`
+- `toString(...)`
+
+### `Randomizer`
+
+- `static Randomizer& instance()`
+- `randomInt` / `randomUint32` / `randomUint64`
+- `randomDouble` / `randomFloat` / `randomBool`
+- `randomString` / `randomHex` / `randomBytes`
+- `uuid()`
+- `seed()` / `reseed()`
+
+### `System`
+
+- 时间：`System::currentTimeMs` / `System::currentTimeUs` / `System::currentTimeNs`
+- 时间格式：`System::currentGMTTime` / `System::currentLocalTime` / `System::formatTime`
+- 文件：`System::readFile` / `System::writeFile` / `System::readFileMmap`
+- 文件系统：`System::fileExists` / `System::isDirectory` / `System::fileSize` / `System::createDirectory` / `System::remove` / `System::listDirectory`
+- 环境变量：`System::getEnv` / `System::setEnv` / `System::unsetEnv`
+- 网络：`System::resolveHostIPv4` / `System::resolveHostIPv6` / `System::checkAddressType`
+- 主机：`System::cpuCount` / `System::hostname` / `System::currentDir` / `System::changeDir` / `System::executablePath`
+
+### `TypeName`
+
+- `template<typename T> getTypeName() -> std::string`
+- `template<typename T> getTypeName(const T& obj) -> std::string`
+- `demangleSymbol(const char* mangledName) -> std::string`
+- 语义：GCC / Clang 下会尝试 demangle；失败或平台不支持时返回原始 `typeid(...).name()` / 符号名；`nullptr` 输入返回空字符串
+
+### `BackTrace`
+
+- `getStackTrace(int maxFrames = 64, int skipFrames = 1) -> std::vector<std::string>`
+- `printStackTrace(int maxFrames = 64, int skipFrames = 1)`
+- `getStackTraceString(int maxFrames = 64, int skipFrames = 1) -> std::string`
+- `installCrashHandlers()`
+- 语义：
+  - 当前只在 `__APPLE__` / `__linux__` 上真正采集堆栈；其他平台会返回空栈或只输出 `0 frames`
+  - `printStackTrace(...)` / `getStackTraceString(...)` 会在传入的 `skipFrames` 基础上再额外跳过 1 帧，用来隐藏包装函数自身
+  - `installCrashHandlers()` 会安装 `SIGSEGV` / `SIGABRT` / `SIGFPE` / `SIGILL`，在支持的平台上额外安装 `SIGBUS`
+  - crash handler 打印堆栈后会把该 signal 的处理方式恢复为 `SIG_DFL`，再重新 `raise(signal)`，因此进程仍会按默认方式终止
+
+### `SignalHandler`
+
+- `using Handler = std::function<void(int)>`
+- `static SignalHandler& instance()`
+- `bool setHandler(int signal, Handler handler)`
+- `template<int... Signals> bool setHandler(Handler handler)`
+- `bool removeHandler(int signal)` / `bool restoreDefault(int signal)`
+- `bool ignoreSignal(int signal)`
+- `bool blockSignal(int signal)` / `bool unblockSignal(int signal)`
+- `bool hasHandler(int signal) const`
+- 语义：
+  - `setHandler(...)` / `removeHandler(...)` / `restoreDefault(...)` / `ignoreSignal(...)` / `blockSignal(...)` / `unblockSignal(...)` 都返回 `bool`
+  - Windows 下 `setHandler(...)` / `removeHandler(...)` / `ignoreSignal(...)` 走 `std::signal(...)`；`blockSignal()` / `unblockSignal()` 固定返回 `false`
+  - POSIX 下 `setHandler(...)` 使用 `sigaction(..., SA_RESTART, ...)` 注册进程级 signal handler
+  - `blockSignal(...)` / `unblockSignal(...)` 在 POSIX 下通过 `pthread_sigmask(...)` 修改的是当前线程的 signal mask，而不是全局进程 mask
+
+## 3. 并发与资源
+
+| 模块 | 头文件 | 主要类型 |
+|---|---|---|
+| Thread | `galay-utils/thread/Thread.hpp` | `ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>` |
+| Pool | `galay-utils/pool/Pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
+
+### `ThreadPool`
+
+- `ThreadPool(size_t numThreads = 0)`
+- `addTask(F&&, Args&&...) -> std::future<std::invoke_result_t<F, Args...>>`
+- `execute(F&&)`
+- `threadCount()` / `pendingTasks()` / `isStopped()`
+- `waitAll()`
+- `stop()` / `stopNow()`
+- 语义：`addTask(...)` 在池已停止时抛 `std::runtime_error`；`execute(...)` 只派发任务，不返回 `future`
+
+### `TaskWaiter`
+
+- `addTask(ThreadPool&, F&&)`
+- `wait()`
+- `waitFor(timeout)`
+
+### `ThreadSafeList<T>`
+
+- `pushFront` / `pushBack`
+- `popFront` / `popBack`
+- `remove(Node*)`
+- `size()` / `empty()` / `clear()`
+
+### `PoolableObject` / `IsPoolable<T>`
+
+- `virtual ~PoolableObject() = default`
+- `virtual void reset()`
+- `IsPoolable<T>`：`T` 继承 `PoolableObject`，或自行提供 `reset() -> void`
+
+### `ObjectPool<T>`
+
+- `using Ptr = std::unique_ptr<T, std::function<void(T*)>>`
+- `using Creator = std::function<T*()>`
+- `using Destroyer = std::function<void(T*)>`
+- `ObjectPool(size_t initialSize = 0, size_t maxSize = 0, Creator creator = nullptr, Destroyer destroyer = nullptr)`
+- `acquire()`：优先复用池内对象；池空时按需新建
+- `tryAcquire()`：仅在池内已有对象时成功，否则返回空 `Ptr`
+- `size()` / `totalCreated()` / `empty()`
+- `clear()` / `shrink(size_t targetSize)`
+
+### `BlockingObjectPool<T>`
+
+- `using Ptr = std::unique_ptr<T, std::function<void(T*)>>`
+- `using Creator = std::function<T*()>`
+- `using Destroyer = std::function<void(T*)>`
+- `BlockingObjectPool(size_t poolSize, Creator creator = nullptr, Destroyer destroyer = nullptr)`
+- `acquire()`：阻塞直到池内有对象可取
+- `tryAcquireFor(timeout)`：超时返回空 `Ptr`
+- `available()`
+- 语义：这是固定大小阻塞池；没有 `tryAcquire()`、`totalCreated()`、`clear()`、`shrink()` 这组 API
+
+## 4. 流控与容错
+
+| 模块 | 头文件 | 主要类型 |
+|---|---|---|
+| RateLimiter | `galay-utils/ratelimiter/RateLimiter.hpp` | `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` |
+| CircuitBreaker | `galay-utils/circuitbreaker/CircuitBreaker.hpp` | `CircuitState`、`CircuitBreakerConfig`、`CircuitBreaker` |
+
+### `RateLimiter`
+
+`RateLimiter.hpp` 的公开面分为四个限流器类型，以及四个与 `acquire()` 路径配套的 awaitable 类型：
+
+- `CountingSemaphore`
+  - `tryAcquire(size_t n = 1)`
+  - `acquire(size_t n = 1) -> SemaphoreAwaitable`
+  - `release(size_t n = 1)`
+  - `available()`
+- `TokenBucketLimiter`
+  - `TokenBucketLimiter(double rate, size_t capacity)`
+  - `tryAcquire(size_t tokens = 1)`
+  - `acquire(size_t tokens = 1) -> TokenBucketAwaitable`
+  - `availableTokens()`
+  - `setRate(double)` / `setCapacity(size_t)`
+  - `rate()` / `capacity()`
+- `SlidingWindowLimiter`
+  - `SlidingWindowLimiter(size_t maxRequests, std::chrono::milliseconds windowSize)`
+  - `tryAcquire()`
+  - `acquire() -> SlidingWindowAwaitable`
+  - `currentCount()`
+  - `reset()`
+- `LeakyBucketLimiter`
+  - `LeakyBucketLimiter(double rate, size_t capacity)`
+  - `tryAcquire(size_t amount = 1)`
+  - `acquire(size_t amount = 1) -> LeakyBucketAwaitable`
+  - `currentLevel()`
+- `SemaphoreAwaitable`
+  - `SemaphoreAwaitable(CountingSemaphore*, size_t)`
+  - `await_ready() noexcept`
+  - `await_suspend(std::coroutine_handle<>) noexcept`
+  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
+- `TokenBucketAwaitable`
+  - `TokenBucketAwaitable(TokenBucketLimiter*, size_t)`
+  - `await_ready() noexcept`
+  - `await_suspend(std::coroutine_handle<>) noexcept`
+  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
+- `SlidingWindowAwaitable`
+  - `SlidingWindowAwaitable(SlidingWindowLimiter*)`
+  - `await_ready() noexcept`
+  - `await_suspend(std::coroutine_handle<>) noexcept`
+  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
+- `LeakyBucketAwaitable`
+  - `LeakyBucketAwaitable(LeakyBucketLimiter*, size_t)`
+  - `await_ready() noexcept`
+  - `await_suspend(std::coroutine_handle<>) noexcept`
+  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
+
+获取路径映射：
+
+- `CountingSemaphore::acquire(...)` → `SemaphoreAwaitable`
+- `TokenBucketLimiter::acquire(...)` → `TokenBucketAwaitable`
+- `SlidingWindowLimiter::acquire()` → `SlidingWindowAwaitable`
+- `LeakyBucketLimiter::acquire(...)` → `LeakyBucketAwaitable`
+
+等待语义：
+
+- 四个 awaitable 都继承 `kernel::TimeoutSupport<...>`，因此支持 `co_await limiter.acquire(...)`
+- 若链式调用 `.timeout(...)`，恢复点的结果仍是 `std::expected<void, kernel::IOError>`，而不是 `bool`
+
+依赖边界：
+
+- 该头文件无条件依赖 `galay-kernel` 与 `concurrentqueue/moodycamel`
+- 因此它既是功能 API，也是外部依赖边界
+
+### `CircuitBreaker`
+
+- `CircuitBreakerConfig`
+  - `failureThreshold`
+  - `successThreshold`
+  - `resetTimeout`
+- `CircuitBreaker`
+  - `allowRequest()`
+  - `onSuccess()` / `onFailure()`
+  - `execute(F&&)`
+  - `executeWithFallback(F&&, Fallback&&)`
+  - `state()` / `stateString()`
+  - `failureCount()` / `successCount()`
+  - `reset()` / `forceOpen()`
+  - `config()`
+
+## 5. 路由、分布式与数据结构
+
+| 模块 | 头文件 | 主要类型 / 方法 |
+|---|---|---|
+| Balancer | `galay-utils/balancer/LoadBalancer.hpp` | `RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>` |
+| ConsistentHash | `galay-utils/consistent_hash/ConsistentHash.hpp` | `NodeConfig`、`NodeStatus`、`PhysicalNode`、`ConsistentHash` |
+| Trie | `galay-utils/trie/TrieTree.hpp` | `TrieTree` |
+| MVCC | `galay-utils/mvcc/Mvcc.hpp` | `VersionedValue<T>`、`Mvcc<T>`、`Snapshot`、`Transaction<T>` |
+| Huffman | `galay-utils/huffman/Huffman.hpp` | `HuffmanCode`、`HuffmanTable<T>`、`HuffmanEncoder<T>`、`HuffmanDecoder<T>`、`HuffmanBuilder<T>` |
+
+### `Balancer`
+
+- `RoundRobinLoadBalancer<T>`：`select()` / `size()` / `append(Type)`
+- `WeightRoundRobinLoadBalancer<T>`：`select()` / `size()` / `append(Type, uint32_t)`
+- `RandomLoadBalancer<T>`：`select()` / `size()` / `append(Type)`
+- `WeightedRandomLoadBalancer<T>`：`select()` / `size()` / `append(Type, uint32_t)`
+
+### `ConsistentHash`
+
+- `NodeStatus`
+  - 数据成员：`healthy` / `requestCount` / `failureCount`
+  - `recordRequest()` / `recordFailure()`
+  - `markHealthy()` / `reset()`
+- `NodeConfig`
+  - 数据成员：`id` / `endpoint` / `weight = 1`
+  - `operator==(const NodeConfig&)`
+- `PhysicalNode`
+  - 数据成员：`config` / `status`
+  - `explicit PhysicalNode(NodeConfig cfg)`
+- `ConsistentHash`
+  - `using HashFunc = std::function<uint32_t(const std::string&)>`
+  - `ConsistentHash(size_t virtualNodes = 150, HashFunc hashFunc = nullptr)`
+  - `addNode(const NodeConfig&)`
+  - `removeNode(const std::string& nodeId)`
+  - `getNode(const std::string& key) -> std::optional<NodeConfig>`
+  - `getHealthyNode(const std::string& key, size_t maxRetries = 3) -> std::optional<NodeConfig>`
+  - `getNodes(const std::string& key, size_t count) -> std::vector<NodeConfig>`
+  - `markUnhealthy(const std::string&)` / `markHealthy(const std::string&)`
+  - `getAllNodes() -> std::vector<NodeConfig>`
+  - `nodeCount()` / `virtualNodeCount()` / `empty()` / `clear()`
+- 语义：当前公开头里没有 `getNodeStatus()`；状态相关检索应落到 `NodeStatus`、`PhysicalNode` 以及 `markHealthy()` / `markUnhealthy()`
+
+### `TrieTree`
+
+- `add`
+- `contains`
+- `startsWith`
+- `query`
+- `remove`
+- `getWordsWithPrefix`
+- `getAllWords`
+- `size()` / `empty()` / `clear()`
+
+### `MVCC`
+
+- `using Version = uint64_t`
+- `VersionedValue<T>`
+  - 数据成员：`version` / `value` / `deleted`
+  - `VersionedValue(Version v, std::unique_ptr<T> val, bool del = false)`
+- `Mvcc<T>`
+  - `Mvcc()`
+  - `getValue(Version version) const -> const T*`
+  - `getCurrentValue() const -> const T*`
+  - `getValueWithVersion(Version version) const -> std::pair<const T*, Version>`
+  - `putValue(std::unique_ptr<T>) -> Version`
+  - `putValue(const T&) -> Version`
+  - `updateValue(std::function<std::unique_ptr<T>(const T*)>) -> Version`
+  - `compareAndSwap(Version expectedVersion, std::unique_ptr<T> newValue) -> Version`
+  - `removeValue(Version version)` / `deleteValue() -> Version`
+  - `isValid(Version version) const`
+  - `currentVersion() const` / `versionCount() const`
+  - `gc(size_t keepVersions)` / `gcOlderThan(Version olderThan)`
+  - `getAllVersions() const -> std::vector<Version>`
+  - `clear()`
+- `Snapshot`
+  - `explicit Snapshot(Version version)`
+  - `version() const`
+  - `read(const Mvcc<T>& mvcc) const -> const T*`
+- `Transaction<T>`
+  - `explicit Transaction(Mvcc<T>& mvcc)`
+  - `read() const -> const T*`
+  - `write(std::unique_ptr<T> value)`
+  - `commit()`
+  - `isCommitted() const`
+- 语义：`compareAndSwap(...)` 冲突时返回 `0`；`deleteValue()` 会写入 tombstone 版本，而不是立即擦除历史版本
+
+### `Huffman`
+
+- `HuffmanCode`
+  - 数据成员：`code` / `length`
+- `HuffmanTable<T>`
+  - `HuffmanTable()`
+  - `addCode(const T& symbol, uint32_t code, uint8_t length)`
+  - `getCode(const T& symbol) const -> const HuffmanCode&`
+  - `hasSymbol(const T& symbol) const`
+  - `getSymbol(uint32_t code, uint8_t length) const -> const T&`
+  - `tryGetSymbol(uint32_t code, uint8_t length, T& symbol) const`
+  - `getSymbols() const -> std::vector<T>`
+  - `size() const`
+  - `clear()`
+- `HuffmanEncoder<T>`
+  - `explicit HuffmanEncoder(const HuffmanTable<T>& table)`
+  - `encode(const T& symbol)`
+  - `encode(const std::vector<T>& symbols)`
+  - `finish() -> std::vector<uint8_t>`
+  - `bitCount() const`
+  - `reset()`
+- `HuffmanDecoder<T>`
+  - `HuffmanDecoder(const HuffmanTable<T>& table, uint8_t minCodeLen = 1, uint8_t maxCodeLen = 32)`
+  - `decode(const std::vector<uint8_t>& data, size_t symbolCount = 0) -> std::vector<T>`
+- `HuffmanBuilder<T>`
+  - `build(const std::unordered_map<T, size_t>& frequencies) -> HuffmanTable<T>`
+  - `buildFromData(const std::vector<T>& data) -> HuffmanTable<T>`
+- 语义：`HuffmanTable<T>::getCode()` / `getSymbol()` 在缺失项上抛异常；`HuffmanDecoder<T>::decode()` 在超过 `maxCodeLen` 时抛 `std::runtime_error`
+
+## 6. 应用与系统集成
+
+| 模块 | 头文件 | 主要类型 |
+|---|---|---|
+| App | `galay-utils/args/App.hpp` | `ArgType`、`ArgValue`、`Arg`、`Cmd`、`App` |
+| Parser | `galay-utils/parser/Parser.hpp` | `ParserBase`、`ConfigParser`、`EnvParser`、`ParserManager` |
+| Process | `galay-utils/process/Process.hpp` | `ProcessId`、`ExitStatus`、`Process` |
+
+### `App`
+
+- `ArgType`
+  - `Bool` / `Int` / `Float` / `Double` / `String`
+- `ArgValue`
+  - `using Value = std::variant<bool, int, float, double, std::string>`
+  - `ArgValue()`
+  - `ArgValue(Value)`
+  - `as<T>()`
+  - `isSet()`
+  - `set(Value)`
+- `Arg`
+  - `Arg()`
+  - `Arg(std::string longName, std::string description)`
+  - `shortName(char)`
+  - `type(ArgType)`
+  - `required(bool = true)`
+  - `defaultValue(...)`
+  - `flag(bool = true)`
+  - `longName()` / `shortName()` / `description()`
+  - `type()` / `isRequired()` / `isFlag()` / `defaultValue()`
+- `Cmd`
+  - `addArg(Arg)`
+  - `addSubcommand(std::unique_ptr<Cmd>)`
+  - `callback(Callback)`
+  - `get(name)` / `getAs<T>(name)` / `has(name)`
+  - `positional()`
+  - `name()` / `description()`
+  - `printHelp()`
+- `App`
+  - `App(std::string name, std::string description = "")`
+  - `run(int argc, char* argv[])`
+
+### `Parser`
+
+- `ParserBase`
+  - `parseFile`
+  - `parseString`
+  - `getValue`
+  - `hasKey`
+  - `getKeys`
+  - `getValueAs<T>`
+  - `lastError()`
+- `ConfigParser`
+  - `getKeysInSection`
+  - `getArray`
+- `EnvParser`
+  - 继承 `ParserBase`
+- `ParserManager`
+  - `instance()`
+  - `registerParser(extension, creator)`
+  - `createParser(path)`
+  - 默认注册：`.conf` / `.ini` → `ConfigParser`，`.env` → `EnvParser`
+
+### `Process`
+
+- `ProcessId`
+  - Windows：`DWORD`
+  - POSIX：`pid_t`
+- `ExitStatus`
+  - 数据成员：`code` / `signaled` / `signal`
+  - `success() const`
+- `Process`
+  - `Process::currentId()`
+  - `Process::parentId()`
+  - `wait(ProcessId pid, int options = 0) -> std::optional<ExitStatus>`
+  - `spawn(const std::string& path, const std::vector<std::string>& args) -> ProcessId`
+  - `execute(const std::string& command) -> ExitStatus`
+  - `executeWithOutput(const std::string& command) -> std::pair<ExitStatus, std::string>`
+  - `kill(ProcessId pid, int signal)`
+  - `Process::isRunning(ProcessId pid)`
+  - `daemonize()`
+
+## 7. 算法与辅助模块
+
+| 头文件 | 主要类型 |
+|---|---|
+| `galay-utils/algorithm/Base64.hpp` | `Base64Util` |
+| `galay-utils/algorithm/MD5.hpp` | `MD5Util` |
+| `galay-utils/algorithm/MurmurHash3.hpp` | `MurmurHash3Util` |
+| `galay-utils/algorithm/Salt.hpp` | `SaltGenerator` |
+| `galay-utils/algorithm/HMAC.hpp` | `SHA256`、`HMAC` |
+| `galay-utils/common/Defn.hpp` | 基础类型别名、`NonCopyable`、`NonMovable`、`Singleton<T>` |
+
+### `Base64Util`
+
+- `Base64Encode(const std::string&, bool url = false)`
+- `Base64EncodePem(const std::string&)`
+- `Base64EncodeMime(const std::string&)`
+- `Base64Decode(const std::string&, bool remove_linebreaks = false)`
+- `Base64Encode(const unsigned char*, size_t len, bool url = false)`
+- C++17：`Base64EncodeView(std::string_view, bool = false)`、`Base64EncodePemView(std::string_view)`、`Base64EncodeMimeView(std::string_view)`、`Base64DecodeView(std::string_view, bool = false)`
+- 语义：
+  - `url = false` 使用标准 Base64 字母表 `+/`；`url = true` 使用 URL-safe 字母表 `-_`
+  - `Base64EncodePem(...)` 会按每 64 个字符插入换行；`Base64EncodeMime(...)` 会按每 76 个字符插入换行
+  - `Base64Decode(...)` / `Base64DecodeView(...)` 遇到非法字符会抛 `std::runtime_error`
+  - `remove_linebreaks = true` 会先移除输入中的 `
+` 再解码，适合处理 PEM / MIME 风格输出
+
+### `MD5Util`
+
+- `MD5(const std::string&)` / `MD5(const unsigned char*, size_t)`
+- `MD5Raw(const std::string&)` / `MD5Raw(const unsigned char*, size_t)`
+- C++17：`MD5View(std::string_view)` / `MD5RawView(std::string_view)`
+- 语义：`MD5(...)` / `MD5View(...)` 返回 32 字符小写十六进制字符串；`MD5Raw(...)` / `MD5RawView(...)` 返回 `std::array<uint8_t, 16>` 原始摘要字节
+
+### `MurmurHash3Util`
+
+- `Hash32(const void*, size_t, uint32_t seed = 0)` / `Hash32(const std::string&, uint32_t seed = 0)`
+- `Hash128(const void*, size_t, uint32_t seed = 0)` / `Hash128(const std::string&, uint32_t seed = 0)`
+- `Hash128Raw(const void*, size_t, uint32_t seed = 0)` / `Hash128Raw(const std::string&, uint32_t seed = 0)`
+- C++17：`Hash32View(std::string_view, uint32_t seed = 0)`、`Hash128View(std::string_view, uint32_t seed = 0)`、`Hash128RawView(std::string_view, uint32_t seed = 0)`
+- 语义：`Hash32(...)` 返回 32 位整数；`Hash128(...)` / `Hash128View(...)` 返回 32 字符十六进制字符串；`Hash128Raw(...)` / `Hash128RawView(...)` 返回 `std::array<uint64_t, 2>`
+
+### `SaltGenerator`
+
+- `generateHex(size_t length = 32)`
+- `generateBase64(size_t length = 32)`
+- `generateBytes(size_t length = 32)`
+- `generateCustom(size_t length, const std::string& charset)`
+- `generateSecureHex(size_t length = 32)`
+- `generateSecureBase64(size_t length = 32)`
+- `generateSecureBytes(size_t length = 32)`
+- `generateBcryptSalt()`
+- `generateTimestamped(size_t length = 32)`
+- `isValidHex(const std::string&)` / `isValidBase64(const std::string&)`
+- 语义：
+  - `generateHex(length)` / `generateBase64(length)` / `generateBytes(length)` / `generateSecure*` 里的 `length` 表示“随机字节数”，不是最终字符串长度
+  - 因而十六进制输出通常是 `2 * length` 个字符，Base64 输出通常接近 `4 * ceil(length / 3)` 个字符
+  - `generateCustom(length, charset)` 的 `length` 才是最终输出字符数
+  - `generateBcryptSalt()` 使用 16 个安全随机字节并输出 22 字符 bcrypt 风格 Base64 盐值
+
+### `SHA256`
+
+- `hash(const uint8_t* data, size_t length) -> std::array<uint8_t, 32>`
+- `hashHex(const uint8_t* data, size_t length)`
+- `hashHex(const std::string& data)`
+- 语义：`hash(...)` 返回 32 字节原始摘要；`hashHex(...)` 返回 64 字符小写十六进制字符串
+
+### `HMAC`
+
+- `hmacSha256(const uint8_t* key, size_t keyLen, const uint8_t* data, size_t dataLen) -> std::array<uint8_t, 32>`
+- `hmacSha256(const std::string& key, const std::string& data) -> std::array<uint8_t, 32>`
+- `hmacSha256Hex(const std::string& key, const std::string& data)`
+- 语义：`hmacSha256(...)` 返回 32 字节原始 HMAC；`hmacSha256Hex(...)` 返回 64 字符小写十六进制字符串
+
+### `Defn.hpp`
+
+- 预处理宏：`GALAY_PLATFORM_*`、`GALAY_ARCH_*`、`GALAY_COMPILER_*`、`GALAY_LIKELY(x)`、`GALAY_UNLIKELY(x)`、`GALAY_FORCE_INLINE`、`GALAY_UNUSED(x)`
+- 基础别名：`i8` / `i16` / `i32` / `i64`、`u8` / `u16` / `u32` / `u64`、`f32` / `f64`、`usize` / `isize`
+- 指针与函数别名：`UniquePtr<T>`、`SharedPtr<T>`、`WeakPtr<T>`、`Func<T>`
+- 字符串别名：`String` / `StringView`
+- 基类：`NonCopyable`、`NonMovable`
+- `Singleton<T>`
+  - 继承：`NonCopyable`、`NonMovable`
+  - `static T& instance()`
+
+## 8. 已知 API 边界
+
+- 文档中不再使用 `IniParser`；当前公开类型为 `ConfigParser`
+- 文档中不再使用“API 索引”旧名；本页 canonical 标题为“API参考”
+- 当前仓库现提供 `B1-CoreBench`，但本页仍不直接附带吞吐量表；性能口径统一以 [05-性能测试](05-性能测试.md) 为准
+
+## 9. 返回、线程与使用语义
+
+- 当前仓库没有统一的 `expected` / 错误码基类；检索失败语义时必须回到对应头文件签名，而不能把整个仓库当成单一错误模型
+- 纯工具类主路径集中在 `string/`、`random/`、`algorithm/`、`common/`，它们主要回答“输入是什么、返回值是什么”
+- 线程 / 资源相关能力集中在 `thread/`、`pool/`、`ratelimiter/`、`circuitbreaker/`、`process/`，检索时要额外关注阻塞/等待/资源释放语义
+- `ThreadPool::addTask(...)` 返回 `std::future<...>`，而 `execute(...)` 是 fire-and-forget 风格；两者不应混用为同一等待模型
+- `ObjectPool<T>` 与 `BlockingObjectPool<T>` 不是同一组方法：前者是“可扩容 + 非阻塞取对象”，后者是“固定池 + 阻塞等待”
+- `RateLimiter::*::acquire(...)` 返回对应 `*Awaitable`，`co_await` 后的恢复值是 `std::expected<void, kernel::IOError>`，不是直接 `bool`
+- `ConsistentHash` 当前没有 `getNodeStatus()` 公开 API；状态检索要从 `NodeStatus`、`PhysicalNode` 以及标记接口理解
+- `App::run(...)`、`ParserBase::*`、`Process::*`、`System::*` 直接面向进程 / 文件系统 / 环境变量等外部状态，细节问题需要结合真实调用环境理解
+- 资源生命周期主要集中在 `ThreadPool`、对象池、限流器、断路器与 `Process` 相关 API；纯字符串 / 哈希 / 编码工具通常是无状态或短生命周期值语义
+
+## 10. 交叉验证入口
+
+- 基础能力示例：`examples/include/E1-basic_usage.cpp`
+- 系统 / 进程示例：`examples/include/E2-system_process.cpp`
+- parser / balancer 示例：`examples/include/E3-parser_balancer.cpp`
+- include / umbrella / 模块 smoke：`test/test_all.cpp`、`test/module_import_smoke.cpp`
+
+## 11. 继续阅读
+
+- [03-使用指南](03-使用指南.md)
+- [04-示例代码](04-示例代码.md)
+- [06-高级主题](06-高级主题.md)
