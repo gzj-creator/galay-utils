@@ -15,7 +15,6 @@ export {
 #include "galay-utils/signal/SignalHandler.hpp"
 #include "galay-utils/pool/Pool.hpp"
 #include "galay-utils/thread/Thread.hpp"
-#include "galay-utils/ratelimiter/RateLimiter.hpp"
 #include "galay-utils/circuitbreaker/CircuitBreaker.hpp"
 #include "galay-utils/consistent_hash/ConsistentHash.hpp"
 #include "galay-utils/trie/TrieTree.hpp"

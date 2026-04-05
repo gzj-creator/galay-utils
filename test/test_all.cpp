@@ -3,14 +3,79 @@
 #include <thread>
 #include <chrono>
 #include <iomanip>
+#include <atomic>
 
 // Include all modules
 #include "../galay-utils/galay-utils.hpp"
 
 // galay-kernel for coroutine tests
 #include <galay-kernel/kernel/Runtime.h>
+#include <galay-kernel/kernel/Scheduler.hpp>
+#include <galay-kernel/kernel/Task.h>
+#include <galay-utils/ratelimiter/RateLimiter.hpp>
 
 using namespace galay::utils;
+
+using Coroutine = galay::kernel::Task<void>;
+
+namespace {
+
+Coroutine runAsyncSemaphoreCase(CountingSemaphore& asyncSem, std::atomic<bool>& testDone) {
+    co_await asyncSem.acquire(1);
+    assert(asyncSem.available() == 1);
+
+    auto result = co_await asyncSem.acquire(1).timeout(std::chrono::milliseconds(100));
+    assert(result.has_value());
+    assert(asyncSem.available() == 0);
+
+    asyncSem.release(2);
+    assert(asyncSem.available() == 2);
+
+    testDone.store(true, std::memory_order_release);
+    co_return;
+}
+
+Coroutine runCountingSemaphoreStressCase(CountingSemaphore& sem,
+                                         std::atomic<int>& acquired,
+                                         std::atomic<int>& completed,
+                                         int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        if (sem.tryAcquire(1)) {
+            ++acquired;
+            sem.release(1);
+        }
+    }
+    ++completed;
+    co_return;
+}
+
+Coroutine runTokenBucketStressCase(TokenBucketLimiter& limiter,
+                                   std::atomic<int>& acquired,
+                                   std::atomic<int>& completed,
+                                   int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        if (limiter.tryAcquire(1)) {
+            ++acquired;
+        }
+    }
+    ++completed;
+    co_return;
+}
+
+Coroutine runSlidingWindowStressCase(SlidingWindowLimiter& limiter,
+                                     std::atomic<int>& acquired,
+                                     std::atomic<int>& completed,
+                                     int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        if (limiter.tryAcquire()) {
+            ++acquired;
+        }
+    }
+    ++completed;
+    co_return;
+}
+
+} // namespace
 
 // ==================== String Tests ====================
 void testString() {
@@ -402,26 +467,12 @@ void testRateLimiter() {
     CountingSemaphore asyncSem(2);
     std::atomic<bool> testDone{false};
 
-    // 测试 Semaphore 的协程 acquire
-    runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
-        // 异步获取
-        co_await asyncSem.acquire(1);
-        assert(asyncSem.available() == 1);
-
-        // 带超时的获取
-        auto result = co_await asyncSem.acquire(1).timeout(std::chrono::milliseconds(100));
-        assert(result.has_value());
-        assert(asyncSem.available() == 0);
-
-        asyncSem.release(2);
-        assert(asyncSem.available() == 2);
-
-        testDone = true;
-        co_return;
-    }());
+    // Keep task storage alive in this scope before handing ownership to scheduler.
+    auto asyncSemTask = runAsyncSemaphoreCase(asyncSem, testDone);
+    (void)galay::kernel::scheduleTask(runtime.getNextIOScheduler(), std::move(asyncSemTask));
 
     // 等待协程完成
-    while (!testDone) {
+    while (!testDone.load(std::memory_order_acquire)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
@@ -1480,16 +1531,9 @@ void stressTestRateLimiter() {
         runtime.start();
 
         for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
-            runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
-                for (int i = 0; i < 100; ++i) {
-                    if (sem.tryAcquire(1)) {
-                        ++acquired;
-                        sem.release(1);
-                    }
-                }
-                ++completed;
-                co_return;
-            }());
+            (void)galay::kernel::scheduleTask(
+                runtime.getNextIOScheduler(),
+                runCountingSemaphoreStressCase(sem, acquired, completed, 100));
         }
 
         // 等待所有协程完成
@@ -1525,15 +1569,9 @@ void stressTestRateLimiter() {
         runtime.start();
 
         for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
-            runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
-                for (int i = 0; i < 100; ++i) {
-                    if (limiter.tryAcquire(1)) {
-                        ++acquired;
-                    }
-                }
-                ++completed;
-                co_return;
-            }());
+            (void)galay::kernel::scheduleTask(
+                runtime.getNextIOScheduler(),
+                runTokenBucketStressCase(limiter, acquired, completed, 100));
         }
 
         while (completed < numSchedulers * coroutinesPerScheduler) {
@@ -1567,15 +1605,9 @@ void stressTestRateLimiter() {
         runtime.start();
 
         for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
-            runtime.getNextIOScheduler()->spawn([&]() -> galay::kernel::Coroutine {
-                for (int i = 0; i < 50; ++i) {
-                    if (limiter.tryAcquire()) {
-                        ++acquired;
-                    }
-                }
-                ++completed;
-                co_return;
-            }());
+            (void)galay::kernel::scheduleTask(
+                runtime.getNextIOScheduler(),
+                runSlidingWindowStressCase(limiter, acquired, completed, 50));
         }
 
         while (completed < numSchedulers * coroutinesPerScheduler) {

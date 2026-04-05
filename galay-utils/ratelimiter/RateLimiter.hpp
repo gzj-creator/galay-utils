@@ -3,8 +3,8 @@
 
 #include <atomic>
 #include <chrono>
+#include <coroutine>
 
-#include <galay-kernel/kernel/Coroutine.h>
 #include <galay-kernel/kernel/Waker.h>
 #include <galay-kernel/kernel/Timeout.hpp>
 #include <galay-kernel/common/Error.h>
@@ -405,7 +405,8 @@ public:
         return false;
     }
 
-    bool await_suspend(std::coroutine_handle<> handle) noexcept {
+    template <typename Promise>
+    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
         m_semaphore->m_waiters.enqueue({kernel::Waker(handle), m_count});
         if (m_semaphore->tryAcquire(m_count)) {
             m_result = {};
@@ -440,7 +441,8 @@ public:
         return false;
     }
 
-    bool await_suspend(std::coroutine_handle<> handle) noexcept {
+    template <typename Promise>
+    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
         m_limiter->m_waiters.enqueue({kernel::Waker(handle), m_tokens});
         if (m_limiter->tryAcquire(m_tokens)) {
             m_result = {};
@@ -475,7 +477,8 @@ public:
         return false;
     }
 
-    bool await_suspend(std::coroutine_handle<> handle) noexcept {
+    template <typename Promise>
+    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
         m_limiter->m_waiters.enqueue(kernel::Waker(handle));
         if (m_limiter->tryAcquire()) {
             m_result = {};
@@ -509,7 +512,8 @@ public:
         return false;
     }
 
-    bool await_suspend(std::coroutine_handle<> handle) noexcept {
+    template <typename Promise>
+    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
         m_limiter->m_waiters.enqueue({kernel::Waker(handle), m_amount});
         if (m_limiter->tryAcquire(m_amount)) {
             m_result = {};

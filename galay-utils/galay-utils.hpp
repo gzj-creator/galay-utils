@@ -26,9 +26,6 @@
 // Thread pool
 #include "thread/Thread.hpp"
 
-// Rate limiting
-#include "ratelimiter/RateLimiter.hpp"
-
 // Circuit breaker
 #include "circuitbreaker/CircuitBreaker.hpp"
 

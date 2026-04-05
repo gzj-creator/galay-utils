@@ -552,7 +552,7 @@
 
 - 文档中不再使用 `IniParser`；当前公开类型为 `ConfigParser`
 - 文档中不再使用“API 索引”旧名；本页 canonical 标题为“API参考”
-- 当前仓库现提供 `B1-CoreBench`，但本页仍不直接附带吞吐量表；性能口径统一以 [05-性能测试](05-性能测试.md) 为准
+- 当前仓库没有受版本控制的 benchmark target；性能页只保留“当前无 benchmark 资产”的边界说明
 
 ## 9. 返回、线程与使用语义
 
@@ -569,8 +569,7 @@
 ## 10. 交叉验证入口
 
 - 基础能力示例：`examples/include/E1-basic_usage.cpp`
-- 系统 / 进程示例：`examples/include/E2-system_process.cpp`
-- parser / balancer 示例：`examples/include/E3-parser_balancer.cpp`
+- import 示例：`examples/import/E1-basic_usage.cpp`
 - include / umbrella / 模块 smoke：`test/test_all.cpp`、`test/module_import_smoke.cpp`
 
 ## 11. 继续阅读

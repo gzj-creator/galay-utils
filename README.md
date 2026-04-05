@@ -11,13 +11,13 @@
 | 项目 | 当前真实状态 |
 |---|---|
 | C++ 标准 | `CMAKE_CXX_STANDARD 23` |
-| 基线 CMake | `3.16+`，但若保留默认 `BUILD_MODULE_TESTS=ON`，配置阶段需要 `3.28+` |
+| 基线 CMake | `3.16+` |
 | 导出 target | `galay-utils`（INTERFACE）；满足条件时额外生成 `galay-utils-modules` |
-| 真实示例 | `E1-BasicUsage`、`E2-SystemProcess`、`E3-ParserBalancer` |
-| 真实 benchmark | `benchmark/B1-core_benchmark.cpp` → target `B1-CoreBench` |
+| 真实示例 | `E1-BasicUsage`；满足模块条件时额外生成 `E1-BasicUsageImport` |
+| 真实 benchmark | 当前无受版本控制的 benchmark 目录或 target |
 | 真实测试 | `test/test_all.cpp` → target `test_all`；可选模块烟雾测试 `test_import_smoke` |
 | Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
-| 额外头依赖 | 使用 `galay-utils/galay-utils.hpp`、`galay-utils/ratelimiter/RateLimiter.hpp` 或 `import galay.utils;` 时，需要 `galay-kernel` 与 `concurrentqueue/moodycamel` 头文件 |
+| 额外头依赖 | 仅使用 `galay-utils/ratelimiter/RateLimiter.hpp` 时，需要 `galay-kernel` 与 `concurrentqueue/moodycamel` 头文件 |
 | 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
 ## 模块概览
@@ -38,7 +38,7 @@
 
 - 编译器支持 C++23
 - CMake `>= 3.16`
-- 如果你只想验证头文件布局，建议显式关闭模块测试，避免默认 `BUILD_MODULE_TESTS=ON` 在 CMake `< 3.28` 时直接失败
+- 如果你只想验证头文件布局，保持默认 `BUILD_MODULE_TESTS=OFF` 即可；只有要验证模块导入时再显式开启
 
 ```bash
 git clone https://github.com/gzj-creator/galay-utils.git
@@ -47,7 +47,7 @@ cd galay-utils
 cmake -S . -B build \
   -DBUILD_MODULE_TESTS=OFF \
   -DBUILD_EXAMPLES=OFF \
-  -DBUILD_TESTS=OFF
+  -DBUILD_TESTING=OFF
 
 cmake --build build --parallel
 ```
@@ -59,13 +59,14 @@ cmake --build build --parallel
 - 编译器支持 C++23
 - CMake `>= 3.16`
 - `examples/include/E1-basic_usage.cpp` 使用 umbrella header `galay-utils/galay-utils.hpp`
-- 因此编译该示例时需要能找到 `galay-kernel` 和 `concurrentqueue/moodycamel` 头文件
+- 当前 umbrella header 不再默认导出 `RateLimiter`
+- 因此该示例不再要求 `galay-kernel` / `concurrentqueue` 头文件
 
 ```bash
 cmake -S . -B build-examples \
   -DBUILD_MODULE_TESTS=OFF \
   -DBUILD_EXAMPLES=ON \
-  -DBUILD_TESTS=OFF
+  -DBUILD_TESTING=OFF
 
 cmake --build build-examples --target E1-BasicUsage --parallel
 ./build-examples/examples/E1-BasicUsage
@@ -83,14 +84,14 @@ cmake --build build-examples --target E1-BasicUsage --parallel
 
 - 编译器支持 C++23
 - CMake `>= 3.16`
-- `test/test_all.cpp` 直接包含 umbrella header
+- `test/test_all.cpp` 包含 umbrella header，并额外直接包含 `ratelimiter/RateLimiter.hpp`
 - `galay-kernel` 头文件与库可用；若未安装到默认前缀，请通过 `-DCMAKE_PREFIX_PATH=/path/to/prefix` 让 CMake 发现 `galay-kernel-config.cmake`
 
 ```bash
 cmake -S . -B build-test \
   -DBUILD_MODULE_TESTS=OFF \
   -DBUILD_EXAMPLES=OFF \
-  -DBUILD_TESTS=ON
+  -DBUILD_TESTING=ON
 
 cmake --build build-test --target test_all --parallel
 ctest --test-dir build-test --output-on-failure
@@ -110,12 +111,12 @@ ctest --test-dir build-test --output-on-failure
 - `Ninja` 或 `Visual Studio` 生成器
 - 非 `AppleClang`
 - 可用的 C++23 模块扫描工具链
-- 仍然需要 `galay-kernel` / `concurrentqueue` 头文件，因为模块接口导出了 `RateLimiter.hpp`
+- 当前模块烟雾测试只验证 `StringUtils` 与 `System` 的导入面
 
 ```bash
 cmake -S . -B build-mod -G Ninja \
   -DCMAKE_CXX_COMPILER=clang++ \
-  -DBUILD_TESTS=ON \
+  -DBUILD_TESTING=ON \
   -DBUILD_MODULE_TESTS=ON \
   -DBUILD_EXAMPLES=OFF
 
@@ -142,13 +143,13 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 ### 头文件选择建议
 
 - 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/string/String.hpp`
-- 只有在确认具备 `galay-kernel` 与 `concurrentqueue` 头文件时，再使用 umbrella header `galay-utils/galay-utils.hpp`
+- 只有在需要限流器家族时，再额外包含 `galay-utils/ratelimiter/RateLimiter.hpp`
 - 只有在工具链满足模块要求时，再使用 `import galay.utils;`
 
 ## 依赖边界
 
 - `galay-utils` 是接口库，但并不等于“所有入口都无外部依赖”
-- `galay-utils/galay-utils.hpp` 会聚合 `RateLimiter.hpp`，而后者无条件包含 `galay-kernel` 与 `concurrentqueue/moodycamel`
+- `galay-utils/ratelimiter/RateLimiter.hpp` 无条件包含 `galay-kernel` 与 `concurrentqueue/moodycamel`
 - `RateLimiter` 的 `tryAcquire()` 与 `acquire()` 都在同一个公开头中，因此即使你只用非阻塞接口，编译该头仍需要上述外部头文件
 - `test/test_all.cpp` 与 `test/module_import_smoke.cpp` 在 CMake 中还额外链接 `galay-kernel`
 
@@ -168,8 +169,8 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 
 ## 已知限制
 
-- 仓库现提供 `benchmark/` 与 `B1-CoreBench`；旧文档中的历史吞吐量表仍不被视为当前官方结果，应以源码和固定命令的本地输出为准
-- 默认 `BUILD_MODULE_TESTS=ON` 会让 CMake `< 3.28` 的默认配置失败；基线构建请显式传 `-DBUILD_MODULE_TESTS=OFF`
+- 当前仓库没有受版本控制的 `benchmark/` 目录；旧文档中的性能页仅保留“当前无 benchmark 资产”的边界说明
+- 默认 `BUILD_MODULE_TESTS=OFF`；验证模块导入时再显式传 `-DBUILD_MODULE_TESTS=ON`
 - 四个 `LoadBalancer` 的 `select()` 都返回 `std::optional<T>` 按值，不属于零拷贝 API
 - 只有 `RoundRobinLoadBalancer<T>::select()` 在节点集合不再变更时适合并发共享；并发 `append()` 以及其余三种 balancer 的共享实例都需要外部同步
 
