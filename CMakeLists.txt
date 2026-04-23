@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(galay-utils VERSION 1.0.3 LANGUAGES CXX)
+project(galay-utils VERSION 1.2.1 LANGUAGES CXX)
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
