@@ -194,7 +194,7 @@ cmake --build . --parallel
 
 ### 在项目中使用
 ```cpp
-#include <galay-utils/galay-utils.hpp>
+#include <galay-utils/galay_utils.hpp>
 
 using namespace galay::utils;
 

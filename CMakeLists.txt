@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(galay-utils VERSION 1.2.1 LANGUAGES CXX)
+project(galay-utils VERSION 2.0.0 LANGUAGES CXX)
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
@@ -89,7 +89,7 @@ if(BUILD_MODULE_TESTS AND GALAY_UTILS_MODULES_SUPPORTED AND GALAY_UTILS_MODULES_
         PUBLIC
             FILE_SET CXX_MODULES
             FILES
-                "${CMAKE_CURRENT_SOURCE_DIR}/galay-utils/module/galay.utils.cppm"
+                "${CMAKE_CURRENT_SOURCE_DIR}/galay-utils/module/galay_utils.cppm"
     )
 endif()
 
@@ -160,6 +160,6 @@ if(BUILD_TESTING)
         set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
     endif()
 
-    find_package(galay-kernel 3.4.4 CONFIG REQUIRED)
+    find_package(galay-kernel 4.0.0 CONFIG REQUIRED)
     add_subdirectory(test)
 endif()

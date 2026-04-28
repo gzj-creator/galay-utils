@@ -1,8 +1,8 @@
 #ifndef GALAY_UTILS_BACKTRACE_HPP
 #define GALAY_UTILS_BACKTRACE_HPP
 
-#include "../common/Defn.hpp"
-#include "../common/TypeName.hpp"
+#include "galay-utils/common/defn.hpp"
+#include "galay-utils/common/type_name.hpp"
 #include <string>
 #include <vector>
 #include <iostream>

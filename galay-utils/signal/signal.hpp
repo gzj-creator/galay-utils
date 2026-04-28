@@ -1,7 +1,7 @@
 #ifndef GALAY_UTILS_SIGNAL_HANDLER_HPP
 #define GALAY_UTILS_SIGNAL_HANDLER_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <functional>
 #include <unordered_map>
 #include <mutex>

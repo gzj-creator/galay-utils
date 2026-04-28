@@ -1,7 +1,7 @@
 #ifndef GALAY_LOADBALANCER_INL
 #define GALAY_LOADBALANCER_INL
 
-#include "LoadBalancer.hpp"
+#include "balancer.hpp"
 
 namespace galay::utils
 {

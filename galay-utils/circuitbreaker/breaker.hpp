@@ -1,7 +1,7 @@
 #ifndef GALAY_UTILS_CIRCUIT_BREAKER_HPP
 #define GALAY_UTILS_CIRCUIT_BREAKER_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <chrono>
 #include <atomic>
 #include <stdexcept>

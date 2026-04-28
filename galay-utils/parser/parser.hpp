@@ -1,7 +1,7 @@
 #ifndef GALAY_UTILS_PARSER_HPP
 #define GALAY_UTILS_PARSER_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <string>
 #include <unordered_map>
 #include <vector>

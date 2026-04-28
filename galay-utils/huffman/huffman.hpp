@@ -1,7 +1,7 @@
 #ifndef GALAY_UTILS_HUFFMAN_HPP
 #define GALAY_UTILS_HUFFMAN_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <string>
 #include <vector>
 #include <unordered_map>

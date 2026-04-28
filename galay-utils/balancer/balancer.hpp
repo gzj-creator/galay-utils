@@ -1,7 +1,7 @@
 #ifndef GALAY_LOADBALANCER_HPP
 #define GALAY_LOADBALANCER_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <atomic>
 #include <vector>
 #include <memory>
@@ -115,6 +115,6 @@ private:
 
 } // namespace galay::utils
 
-#include "LoadBalancer.inl"
+#include "balancer.inl"
 
 #endif // GALAY_LOADBALANCER_HPP

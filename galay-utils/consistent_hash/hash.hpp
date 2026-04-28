@@ -1,7 +1,7 @@
 #ifndef GALAY_UTILS_CONSISTENT_HASH_HPP
 #define GALAY_UTILS_CONSISTENT_HASH_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <string>
 #include <map>
 #include <set>

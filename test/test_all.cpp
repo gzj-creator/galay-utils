@@ -6,13 +6,13 @@
 #include <atomic>
 
 // Include all modules
-#include "../galay-utils/galay-utils.hpp"
+#include "galay-utils/galay_utils.hpp"
 
 // galay-kernel for coroutine tests
-#include <galay-kernel/kernel/Runtime.h>
-#include <galay-kernel/kernel/Scheduler.hpp>
-#include <galay-kernel/kernel/Task.h>
-#include <galay-utils/ratelimiter/RateLimiter.hpp>
+#include <galay-kernel/kernel/runtime.h>
+#include <galay-kernel/kernel/scheduler.hpp>
+#include <galay-kernel/kernel/task.h>
+#include <galay-utils/ratelimiter/limiter.hpp>
 
 using namespace galay::utils;
 

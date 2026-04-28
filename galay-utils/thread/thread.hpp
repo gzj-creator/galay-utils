@@ -1,7 +1,7 @@
 #ifndef GALAY_UTILS_THREAD_HPP
 #define GALAY_UTILS_THREAD_HPP
 
-#include "../common/Defn.hpp"
+#include "galay-utils/common/defn.hpp"
 #include <thread>
 #include <vector>
 #include <queue>

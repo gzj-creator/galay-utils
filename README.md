@@ -17,7 +17,7 @@
 | 真实 benchmark | 当前无受版本控制的 benchmark 目录或 target |
 | 真实测试 | `test/test_all.cpp` → target `test_all`；可选模块烟雾测试 `test_import_smoke` |
 | Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
-| 额外头依赖 | 仅使用 `galay-utils/ratelimiter/RateLimiter.hpp` 时，需要 `galay-kernel` 与 `concurrentqueue/moodycamel` 头文件 |
+| 额外头依赖 | 仅使用 `galay-utils/ratelimiter/limiter.hpp` 时，需要 `galay-kernel` 与 `concurrentqueue/moodycamel` 头文件 |
 | 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
 ## 模块概览
@@ -58,7 +58,7 @@ cmake --build build --parallel
 
 - 编译器支持 C++23
 - CMake `>= 3.16`
-- `examples/include/E1-basic_usage.cpp` 使用 umbrella header `galay-utils/galay-utils.hpp`
+- `examples/include/e1_basic.cpp` 使用 umbrella header `galay-utils/galay_utils.hpp`
 - 当前 umbrella header 不再默认导出 `RateLimiter`
 - 因此该示例不再要求 `galay-kernel` / `concurrentqueue` 头文件
 
@@ -74,7 +74,7 @@ cmake --build build-examples --target E1-BasicUsage --parallel
 
 示例真相来源：
 
-- 源文件：`examples/include/E1-basic_usage.cpp`
+- 源文件：`examples/include/e1_basic.cpp`
 - target：`E1-BasicUsage`
 - 环境变量：无
 
@@ -84,7 +84,7 @@ cmake --build build-examples --target E1-BasicUsage --parallel
 
 - 编译器支持 C++23
 - CMake `>= 3.16`
-- `test/test_all.cpp` 包含 umbrella header，并额外直接包含 `ratelimiter/RateLimiter.hpp`
+- `test/test_all.cpp` 包含 umbrella header，并额外直接包含 `ratelimiter/limiter.hpp`
 - `galay-kernel` 头文件与库可用；若未安装到默认前缀，请通过 `-DCMAKE_PREFIX_PATH=/path/to/prefix` 让 CMake 发现 `galay-kernel-config.cmake`
 
 ```bash
@@ -142,16 +142,16 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 
 ### 头文件选择建议
 
-- 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/string/String.hpp`
-- 只有在需要限流器家族时，再额外包含 `galay-utils/ratelimiter/RateLimiter.hpp`
+- 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/string/string.hpp`
+- 只有在需要限流器家族时，再额外包含 `galay-utils/ratelimiter/limiter.hpp`
 - 只有在工具链满足模块要求时，再使用 `import galay.utils;`
 
 ## 依赖边界
 
 - `galay-utils` 是接口库，但并不等于“所有入口都无外部依赖”
-- `galay-utils/ratelimiter/RateLimiter.hpp` 无条件包含 `galay-kernel` 与 `concurrentqueue/moodycamel`
+- `galay-utils/ratelimiter/limiter.hpp` 无条件包含 `galay-kernel` 与 `concurrentqueue/moodycamel`
 - `RateLimiter` 的 `tryAcquire()` 与 `acquire()` 都在同一个公开头中，因此即使你只用非阻塞接口，编译该头仍需要上述外部头文件
-- `test/test_all.cpp` 与 `test/module_import_smoke.cpp` 在 CMake 中还额外链接 `galay-kernel`
+- `test/test_all.cpp` 与 `test/import_smoke.cpp` 在 CMake 中还额外链接 `galay-kernel`
 
 ## 文档导航
 

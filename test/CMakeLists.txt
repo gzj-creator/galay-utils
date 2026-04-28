@@ -14,7 +14,7 @@ target_link_libraries(test_all PRIVATE galay-utils galay-kernel::galay-kernel)
 add_test(NAME AllTests COMMAND test_all)
 
 if(BUILD_MODULE_TESTS AND TARGET galay-utils-modules)
-    add_executable(test_import_smoke module_import_smoke.cpp)
+    add_executable(test_import_smoke import_smoke.cpp)
     target_link_libraries(test_import_smoke PRIVATE galay-utils-modules)
     set_target_properties(test_import_smoke PROPERTIES CXX_SCAN_FOR_MODULES ON)
 

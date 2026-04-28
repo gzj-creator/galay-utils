@@ -5,9 +5,9 @@
 #include <chrono>
 #include <coroutine>
 
-#include <galay-kernel/kernel/Waker.h>
-#include <galay-kernel/kernel/Timeout.hpp>
-#include <galay-kernel/common/Error.h>
+#include <galay-kernel/kernel/waker.h>
+#include <galay-kernel/kernel/timeout.hpp>
+#include <galay-kernel/common/error.h>
 #include <concurrentqueue/moodycamel/concurrentqueue.h>
 #include <expected>
 

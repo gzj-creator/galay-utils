@@ -7,49 +7,49 @@
 | 入口 | 真实文件 / target | 说明 |
 |---|---|---|
 | 细粒度头文件 | `galay-utils/<module>/*.hpp` | 推荐作为最小依赖接入面 |
-| umbrella header | `galay-utils/galay-utils.hpp` | 聚合所有公开头，也引入 `RateLimiter` 的外部依赖 |
-| C++23 模块 | `galay-utils/module/galay.utils.cppm` | 通过 `import galay.utils;` 导入，导出面与 umbrella 基本一致 |
+| umbrella header | `galay-utils/galay_utils.hpp` | 聚合所有公开头，也引入 `RateLimiter` 的外部依赖 |
+| C++23 模块 | `galay-utils/module/galay_utils.cppm` | 通过 `import galay.utils;` 导入，导出面与 umbrella 基本一致 |
 
 完整公开头文件清单：
 
-- `galay-utils/galay-utils.hpp`
-- `galay-utils/string/String.hpp`
-- `galay-utils/random/Random.hpp`
-- `galay-utils/system/System.hpp`
-- `galay-utils/common/TypeName.hpp`
-- `galay-utils/backtrace/BackTrace.hpp`
-- `galay-utils/signal/SignalHandler.hpp`
-- `galay-utils/thread/Thread.hpp`
-- `galay-utils/pool/Pool.hpp`
-- `galay-utils/ratelimiter/RateLimiter.hpp`
-- `galay-utils/circuitbreaker/CircuitBreaker.hpp`
-- `galay-utils/balancer/LoadBalancer.hpp`
-- `galay-utils/consistent_hash/ConsistentHash.hpp`
-- `galay-utils/trie/TrieTree.hpp`
-- `galay-utils/mvcc/Mvcc.hpp`
-- `galay-utils/huffman/Huffman.hpp`
-- `galay-utils/args/App.hpp`
-- `galay-utils/parser/Parser.hpp`
-- `galay-utils/process/Process.hpp`
-- `galay-utils/algorithm/Base64.hpp`
-- `galay-utils/algorithm/MD5.hpp`
-- `galay-utils/algorithm/MurmurHash3.hpp`
-- `galay-utils/algorithm/Salt.hpp`
-- `galay-utils/algorithm/HMAC.hpp`
-- `galay-utils/common/Defn.hpp`
-- `galay-utils/module/ModulePrelude.hpp`
-- `galay-utils/module/galay.utils.cppm`
+- `galay-utils/galay_utils.hpp`
+- `galay-utils/string/string.hpp`
+- `galay-utils/random/random.hpp`
+- `galay-utils/system/system.hpp`
+- `galay-utils/common/type_name.hpp`
+- `galay-utils/backtrace/trace.hpp`
+- `galay-utils/signal/signal.hpp`
+- `galay-utils/thread/thread.hpp`
+- `galay-utils/pool/pool.hpp`
+- `galay-utils/ratelimiter/limiter.hpp`
+- `galay-utils/circuitbreaker/breaker.hpp`
+- `galay-utils/balancer/balancer.hpp`
+- `galay-utils/consistent_hash/hash.hpp`
+- `galay-utils/trie/trie.hpp`
+- `galay-utils/mvcc/mvcc.hpp`
+- `galay-utils/huffman/huffman.hpp`
+- `galay-utils/args/app.hpp`
+- `galay-utils/parser/parser.hpp`
+- `galay-utils/process/process.hpp`
+- `galay-utils/algorithm/base64.hpp`
+- `galay-utils/algorithm/md5.hpp`
+- `galay-utils/algorithm/murmur_hash3.hpp`
+- `galay-utils/algorithm/salt.hpp`
+- `galay-utils/algorithm/hmac.hpp`
+- `galay-utils/common/defn.hpp`
+- `galay-utils/module/module_prelude.hpp`
+- `galay-utils/module/galay_utils.cppm`
 
 ## 2. 核心工具
 
 | 模块 | 头文件 | 主要类型 / 函数 |
 |---|---|---|
-| String | `galay-utils/string/String.hpp` | `StringUtils` |
-| Random | `galay-utils/random/Random.hpp` | `Randomizer` |
-| System | `galay-utils/system/System.hpp` | `System`、`System::AddressType` |
-| TypeName | `galay-utils/common/TypeName.hpp` | `getTypeName<T>()`、`getTypeName(obj)`、`demangleSymbol()` |
-| BackTrace | `galay-utils/backtrace/BackTrace.hpp` | `BackTrace` |
-| Signal | `galay-utils/signal/SignalHandler.hpp` | `SignalHandler` |
+| String | `galay-utils/string/string.hpp` | `StringUtils` |
+| Random | `galay-utils/random/random.hpp` | `Randomizer` |
+| System | `galay-utils/system/system.hpp` | `System`、`System::AddressType` |
+| TypeName | `galay-utils/common/type_name.hpp` | `getTypeName<T>()`、`getTypeName(obj)`、`demangleSymbol()` |
+| BackTrace | `galay-utils/backtrace/trace.hpp` | `BackTrace` |
+| Signal | `galay-utils/signal/signal.hpp` | `SignalHandler` |
 
 ### `StringUtils`
 
@@ -126,8 +126,8 @@
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
-| Thread | `galay-utils/thread/Thread.hpp` | `ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>` |
-| Pool | `galay-utils/pool/Pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
+| Thread | `galay-utils/thread/thread.hpp` | `ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>` |
+| Pool | `galay-utils/pool/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
 
 ### `ThreadPool`
 
@@ -184,12 +184,12 @@
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
-| RateLimiter | `galay-utils/ratelimiter/RateLimiter.hpp` | `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` |
-| CircuitBreaker | `galay-utils/circuitbreaker/CircuitBreaker.hpp` | `CircuitState`、`CircuitBreakerConfig`、`CircuitBreaker` |
+| RateLimiter | `galay-utils/ratelimiter/limiter.hpp` | `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` |
+| CircuitBreaker | `galay-utils/circuitbreaker/breaker.hpp` | `CircuitState`、`CircuitBreakerConfig`、`CircuitBreaker` |
 
 ### `RateLimiter`
 
-`RateLimiter.hpp` 的公开面分为四个限流器类型，以及四个与 `acquire()` 路径配套的 awaitable 类型：
+`limiter.hpp` 的公开面分为四个限流器类型，以及四个与 `acquire()` 路径配套的 awaitable 类型：
 
 - `CountingSemaphore`
   - `tryAcquire(size_t n = 1)`
@@ -272,11 +272,11 @@
 
 | 模块 | 头文件 | 主要类型 / 方法 |
 |---|---|---|
-| Balancer | `galay-utils/balancer/LoadBalancer.hpp` | `RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>` |
-| ConsistentHash | `galay-utils/consistent_hash/ConsistentHash.hpp` | `NodeConfig`、`NodeStatus`、`PhysicalNode`、`ConsistentHash` |
-| Trie | `galay-utils/trie/TrieTree.hpp` | `TrieTree` |
-| MVCC | `galay-utils/mvcc/Mvcc.hpp` | `VersionedValue<T>`、`Mvcc<T>`、`Snapshot`、`Transaction<T>` |
-| Huffman | `galay-utils/huffman/Huffman.hpp` | `HuffmanCode`、`HuffmanTable<T>`、`HuffmanEncoder<T>`、`HuffmanDecoder<T>`、`HuffmanBuilder<T>` |
+| Balancer | `galay-utils/balancer/balancer.hpp` | `RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>` |
+| ConsistentHash | `galay-utils/consistent_hash/hash.hpp` | `NodeConfig`、`NodeStatus`、`PhysicalNode`、`ConsistentHash` |
+| Trie | `galay-utils/trie/trie.hpp` | `TrieTree` |
+| MVCC | `galay-utils/mvcc/mvcc.hpp` | `VersionedValue<T>`、`Mvcc<T>`、`Snapshot`、`Transaction<T>` |
+| Huffman | `galay-utils/huffman/huffman.hpp` | `HuffmanCode`、`HuffmanTable<T>`、`HuffmanEncoder<T>`、`HuffmanDecoder<T>`、`HuffmanBuilder<T>` |
 
 ### `Balancer`
 
@@ -387,9 +387,9 @@
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
-| App | `galay-utils/args/App.hpp` | `ArgType`、`ArgValue`、`Arg`、`Cmd`、`App` |
-| Parser | `galay-utils/parser/Parser.hpp` | `ParserBase`、`ConfigParser`、`EnvParser`、`ParserManager` |
-| Process | `galay-utils/process/Process.hpp` | `ProcessId`、`ExitStatus`、`Process` |
+| App | `galay-utils/args/app.hpp` | `ArgType`、`ArgValue`、`Arg`、`Cmd`、`App` |
+| Parser | `galay-utils/parser/parser.hpp` | `ParserBase`、`ConfigParser`、`EnvParser`、`ParserManager` |
+| Process | `galay-utils/process/process.hpp` | `ProcessId`、`ExitStatus`、`Process` |
 
 ### `App`
 
@@ -468,12 +468,12 @@
 
 | 头文件 | 主要类型 |
 |---|---|
-| `galay-utils/algorithm/Base64.hpp` | `Base64Util` |
-| `galay-utils/algorithm/MD5.hpp` | `MD5Util` |
-| `galay-utils/algorithm/MurmurHash3.hpp` | `MurmurHash3Util` |
-| `galay-utils/algorithm/Salt.hpp` | `SaltGenerator` |
-| `galay-utils/algorithm/HMAC.hpp` | `SHA256`、`HMAC` |
-| `galay-utils/common/Defn.hpp` | 基础类型别名、`NonCopyable`、`NonMovable`、`Singleton<T>` |
+| `galay-utils/algorithm/base64.hpp` | `Base64Util` |
+| `galay-utils/algorithm/md5.hpp` | `MD5Util` |
+| `galay-utils/algorithm/murmur_hash3.hpp` | `MurmurHash3Util` |
+| `galay-utils/algorithm/salt.hpp` | `SaltGenerator` |
+| `galay-utils/algorithm/hmac.hpp` | `SHA256`、`HMAC` |
+| `galay-utils/common/defn.hpp` | 基础类型别名、`NonCopyable`、`NonMovable`、`Singleton<T>` |
 
 ### `Base64Util`
 
@@ -537,7 +537,7 @@
 - `hmacSha256Hex(const std::string& key, const std::string& data)`
 - 语义：`hmacSha256(...)` 返回 32 字节原始 HMAC；`hmacSha256Hex(...)` 返回 64 字符小写十六进制字符串
 
-### `Defn.hpp`
+### `defn.hpp`
 
 - 预处理宏：`GALAY_PLATFORM_*`、`GALAY_ARCH_*`、`GALAY_COMPILER_*`、`GALAY_LIKELY(x)`、`GALAY_UNLIKELY(x)`、`GALAY_FORCE_INLINE`、`GALAY_UNUSED(x)`
 - 基础别名：`i8` / `i16` / `i32` / `i64`、`u8` / `u16` / `u32` / `u64`、`f32` / `f64`、`usize` / `isize`
@@ -568,9 +568,9 @@
 
 ## 10. 交叉验证入口
 
-- 基础能力示例：`examples/include/E1-basic_usage.cpp`
-- import 示例：`examples/import/E1-basic_usage.cpp`
-- include / umbrella / 模块 smoke：`test/test_all.cpp`、`test/module_import_smoke.cpp`
+- 基础能力示例：`examples/include/e1_basic.cpp`
+- import 示例：`examples/import/e1_basic.cpp`
+- include / umbrella / 模块 smoke：`test/test_all.cpp`、`test/import_smoke.cpp`
 
 ## 11. 继续阅读
 

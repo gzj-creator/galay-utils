@@ -1,5 +1,5 @@
 add_executable(E1-BasicUsage
-    include/E1-basic_usage.cpp
+    include/e1_basic.cpp
 )
 
 target_link_libraries(E1-BasicUsage
@@ -9,7 +9,7 @@ target_link_libraries(E1-BasicUsage
 
 if(BUILD_MODULE_TESTS AND TARGET galay-utils-modules)
     add_executable(E1-BasicUsageImport
-        import/E1-basic_usage.cpp
+        import/e1_basic.cpp
     )
     target_link_libraries(E1-BasicUsageImport
         PRIVATE
