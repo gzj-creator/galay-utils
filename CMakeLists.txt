@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(galay-utils VERSION 2.0.0 LANGUAGES CXX)
+project(galay-utils VERSION 2.1.0 LANGUAGES CXX)
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
@@ -146,20 +146,5 @@ if(BUILD_EXAMPLES)
 endif()
 
 if(BUILD_TESTING)
-    set(GALAY_UTILS_LOCAL_KERNEL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/../galay-kernel/install-local")
-    if(EXISTS "${GALAY_UTILS_LOCAL_KERNEL_PREFIX}/lib/cmake/galay-kernel/galay-kernel-config.cmake")
-        set(galay-kernel_DIR
-            "${GALAY_UTILS_LOCAL_KERNEL_PREFIX}/lib/cmake/galay-kernel"
-            CACHE PATH "Preferred local galay-kernel package directory" FORCE)
-        list(PREPEND CMAKE_PREFIX_PATH "${GALAY_UTILS_LOCAL_KERNEL_PREFIX}")
-        list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
-        if(EXISTS "${GALAY_UTILS_LOCAL_KERNEL_PREFIX}/lib")
-            set(CMAKE_BUILD_RPATH "${GALAY_UTILS_LOCAL_KERNEL_PREFIX}/lib")
-            set(CMAKE_INSTALL_RPATH "${GALAY_UTILS_LOCAL_KERNEL_PREFIX}/lib")
-        endif()
-        set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
-    endif()
-
-    find_package(galay-kernel 4.0.0 CONFIG REQUIRED)
     add_subdirectory(test)
 endif()

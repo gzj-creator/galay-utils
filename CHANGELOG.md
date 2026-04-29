@@ -7,6 +7,8 @@
 
 ## [Unreleased]
 
+## [v2.1.0] - 2026-04-29
+
 ### Added
 - 新增 `IniParser` 与 `TomlParser`，并补充 `.toml` 扩展名解析注册能力。
 - 新增 parser 公共拆分头：`parser_base.hpp`、`detail.hpp`、`config.hpp`、`env.hpp`、`ini.hpp`、`toml.hpp`、`parser_manager.hpp`。
@@ -15,9 +17,16 @@
 - 将原 `parser.hpp` 调整为统一入口封装头，改为包含 `parser_manager.hpp`。
 - 更新聚合导出头与 C++ 模块入口中的 parser 引用路径，统一使用 `parser_manager.hpp`。
 - 同步更新 README 与 API/使用指南/示例/FAQ 文档中的 parser 类型与默认扩展名说明。
+- 移除 `RateLimiter` 的异步 `acquire()` / awaitable 路径，限流器仅保留同步非阻塞 `tryAcquire()` 接口。
+- 移除 `RateLimiter` 对 `galay-kernel` 与 `concurrentqueue/moodycamel` 的依赖，测试 target 不再查找或链接 `galay-kernel`。
+- 将限流器测试从协程调度路径调整为同步正确性测试与多线程 `tryAcquire()` 压测。
 
 ### Fixed
 - 补充 parser 相关测试，覆盖 INI/TOML 正常路径与常见非法输入场景。
+- 补充限流器边界测试，覆盖令牌桶、滑动窗口、漏桶与计数信号量的超限、恢复和容量调整行为。
+
+### Release
+- 按功能变更发布要求提升版本到 `v2.1.0`。
 
 ## [v2.0.0] - 2026-04-29
 

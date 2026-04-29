@@ -17,7 +17,7 @@
 | 真实 benchmark | 当前无受版本控制的 benchmark 目录或 target |
 | 真实测试 | `test/test_all.cpp` → target `test_all`；可选模块烟雾测试 `test_import_smoke` |
 | Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
-| 额外头依赖 | 仅使用 `galay-utils/ratelimiter/limiter.hpp` 时，需要 `galay-kernel` 与 `concurrentqueue/moodycamel` 头文件 |
+| 额外头依赖 | 无 `galay-kernel` / `concurrentqueue` 依赖；限流器仅提供同步 `tryAcquire` 接口 |
 | 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
 ## 模块概览
@@ -60,7 +60,7 @@ cmake --build build --parallel
 - CMake `>= 3.16`
 - `examples/include/e1_basic.cpp` 使用 umbrella header `galay-utils/galay_utils.hpp`
 - 当前 umbrella header 不再默认导出 `RateLimiter`
-- 因此该示例不再要求 `galay-kernel` / `concurrentqueue` 头文件
+- 限流器头文件也不再要求 `galay-kernel` / `concurrentqueue` 头文件
 
 ```bash
 cmake -S . -B build-examples \
@@ -85,7 +85,7 @@ cmake --build build-examples --target E1-BasicUsage --parallel
 - 编译器支持 C++23
 - CMake `>= 3.16`
 - `test/test_all.cpp` 包含 umbrella header，并额外直接包含 `ratelimiter/limiter.hpp`
-- `galay-kernel` 头文件与库可用；若未安装到默认前缀，请通过 `-DCMAKE_PREFIX_PATH=/path/to/prefix` 让 CMake 发现 `galay-kernel-config.cmake`
+- 无需安装 `galay-kernel` 或 `concurrentqueue`
 
 ```bash
 cmake -S . -B build-test \
@@ -99,9 +99,8 @@ ctest --test-dir build-test --output-on-failure
 
 说明：
 
-- `test/CMakeLists.txt` 现优先导入 `galay-kernel::galay-kernel`
-- macOS 构建会把该共享库目录写入测试 target 的 `BUILD_RPATH`
-- 因此在默认 `/usr/local` 安装下，`ctest --test-dir build-test` 不需要额外 `DYLD_LIBRARY_PATH`
+- `test/CMakeLists.txt` 只链接 `galay-utils`
+- `ctest --test-dir build-test` 不需要额外 loader 环境变量
 
 ### 4. 构建 C++23 模块烟雾测试
 
@@ -148,10 +147,10 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 
 ## 依赖边界
 
-- `galay-utils` 是接口库，但并不等于“所有入口都无外部依赖”
-- `galay-utils/ratelimiter/limiter.hpp` 无条件包含 `galay-kernel` 与 `concurrentqueue/moodycamel`
-- `RateLimiter` 的 `tryAcquire()` 与 `acquire()` 都在同一个公开头中，因此即使你只用非阻塞接口，编译该头仍需要上述外部头文件
-- `test/test_all.cpp` 与 `test/import_smoke.cpp` 在 CMake 中还额外链接 `galay-kernel`
+- `galay-utils` 是接口库，公开头不再依赖 `galay-kernel`
+- `galay-utils/ratelimiter/limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
+- 异步限流器和 `acquire()` awaitable 已移除；部分限流器内部带锁，不适合作为协程调度器上的 awaitable 使用
+- `test/test_all.cpp` 与 `test/import_smoke.cpp` 不再额外链接 `galay-kernel`
 
 ## 文档导航
 

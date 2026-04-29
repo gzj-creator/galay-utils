@@ -10,7 +10,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 # Test executable
 add_executable(test_all test_all.cpp)
 
-target_link_libraries(test_all PRIVATE galay-utils galay-kernel::galay-kernel)
+target_link_libraries(test_all PRIVATE galay-utils)
 add_test(NAME AllTests COMMAND test_all)
 
 if(BUILD_MODULE_TESTS AND TARGET galay-utils-modules)

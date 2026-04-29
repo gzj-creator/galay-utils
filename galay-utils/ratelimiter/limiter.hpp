@@ -1,27 +1,31 @@
 #ifndef GALAY_UTILS_RATE_LIMITER_HPP
 #define GALAY_UTILS_RATE_LIMITER_HPP
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <coroutine>
-
-#include <galay-kernel/kernel/waker.h>
-#include <galay-kernel/kernel/timeout.hpp>
-#include <galay-kernel/common/error.h>
-#include <concurrentqueue/moodycamel/concurrentqueue.h>
-#include <expected>
+#include <cstdint>
+#include <deque>
+#include <mutex>
 
 namespace galay::utils {
 
-class SemaphoreAwaitable;
-class TokenBucketAwaitable;
-class SlidingWindowAwaitable;
-class LeakyBucketAwaitable;
+/**
+ * @note Coroutine support is intentionally disabled for this module.
+ *
+ * Rate limiters only expose synchronous, non-blocking tryAcquire() APIs. The
+ * previous coroutine acquire()/awaitable path was removed because it pulled in
+ * galay-kernel and because some limiter implementations use mutex-protected
+ * state. Do not call these types from a coroutine scheduler expecting suspend /
+ * wake behavior; adapt retry, waiting, or timeout policy in the upper layer.
+ */
 
 /**
- * @brief 无锁计数信号量
+ * @brief Lock-free counting semaphore with non-blocking acquisition.
  *
- * 使用原子变量实现，适合高并发和协程环境。
+ * CountingSemaphore stores an atomic permit count. tryAcquire() never blocks
+ * and returns false when there are not enough permits. release() increases the
+ * available count. This type has no coroutine or scheduler dependency.
  */
 class CountingSemaphore {
 public:
@@ -29,14 +33,14 @@ public:
         : m_count(initial) {}
 
     /**
-     * @brief 尝试获取信号量（非阻塞）
-     * @param n 获取数量
-     * @return true 成功，false 失败
+     * @brief Try to acquire permits without blocking.
+     * @param count Number of permits requested.
+     * @return true when the permits were acquired; false otherwise.
      */
-    bool tryAcquire(size_t n = 1) {
+    bool tryAcquire(size_t count = 1) {
         size_t current = m_count.load(std::memory_order_acquire);
-        while (current >= n) {
-            if (m_count.compare_exchange_weak(current, current - n,
+        while (current >= count) {
+            if (m_count.compare_exchange_weak(current, current - count,
                     std::memory_order_acq_rel, std::memory_order_acquire)) {
                 return true;
             }
@@ -45,57 +49,31 @@ public:
     }
 
     /**
-     * @brief 异步获取信号量
-     * @param n 获取数量
-     * @return 可等待对象，支持 co_await 和 .timeout()
-     *
-     * @code
-     * co_await semaphore.acquire();
-     * // 或带超时
-     * auto result = co_await semaphore.acquire().timeout(100ms);
-     * if (!result) { // 超时 }
-     * @endcode
+     * @brief Release permits back to the semaphore.
+     * @param count Number of permits to release.
      */
-    SemaphoreAwaitable acquire(size_t n = 1);
-
-    void release(size_t n = 1) {
-        m_count.fetch_add(n, std::memory_order_release);
-        wakeWaiters();
+    void release(size_t count = 1) {
+        m_count.fetch_add(count, std::memory_order_release);
     }
 
+    /**
+     * @brief Return the current number of available permits.
+     * @return Current permit count.
+     */
     size_t available() const {
         return m_count.load(std::memory_order_acquire);
     }
 
 private:
-    friend class SemaphoreAwaitable;
-
-    struct WaiterInfo {
-        kernel::Waker waker;
-        size_t count;
-    };
-
-    moodycamel::ConcurrentQueue<WaiterInfo> m_waiters;
-
-    void wakeWaiters() {
-        WaiterInfo info;
-        while (m_waiters.try_dequeue(info)) {
-            if (tryAcquire(info.count)) {
-                info.waker.wakeUp();
-            } else {
-                m_waiters.enqueue(info);
-                break;
-            }
-        }
-    }
-
     std::atomic<size_t> m_count;
 };
 
 /**
- * @brief 无锁令牌桶限流器
+ * @brief Non-blocking token bucket rate limiter.
  *
- * 使用原子变量和 CAS 操作实现，高性能无锁设计。
+ * The bucket refills according to a token-per-second rate up to capacity.
+ * tryAcquire() consumes tokens when enough are available and returns false
+ * otherwise. This type is thread-safe and does not block callers.
  */
 class TokenBucketLimiter {
 public:
@@ -103,12 +81,12 @@ public:
         : m_rate(rate)
         , m_capacity(capacity)
         , m_tokens(static_cast<int64_t>(capacity) * kPrecision)
-        , m_lastRefillTime(std::chrono::steady_clock::now().time_since_epoch().count()) {}
+        , m_last_refill_time(nowTicks()) {}
 
     /**
-     * @brief 尝试获取令牌（非阻塞）
-     * @param tokens 获取令牌数
-     * @return true 成功，false 失败
+     * @brief Try to consume tokens without blocking.
+     * @param tokens Number of tokens requested.
+     * @return true when enough tokens were available; false otherwise.
      */
     bool tryAcquire(size_t tokens = 1) {
         refill();
@@ -119,7 +97,6 @@ public:
         while (current >= needed) {
             if (m_tokens.compare_exchange_weak(current, current - needed,
                     std::memory_order_acq_rel, std::memory_order_acquire)) {
-                wakeWaiters();
                 return true;
             }
         }
@@ -127,174 +104,147 @@ public:
     }
 
     /**
-     * @brief 异步获取令牌
-     * @param tokens 获取令牌数
-     * @return 可等待对象，支持 co_await 和 .timeout()
+     * @brief Return currently available tokens.
+     * @return Token count as a floating-point value.
      */
-    TokenBucketAwaitable acquire(size_t tokens = 1);
-
     double availableTokens() const {
         return static_cast<double>(m_tokens.load(std::memory_order_acquire)) / kPrecision;
     }
 
+    /**
+     * @brief Update token refill rate.
+     * @param rate Tokens added per second.
+     */
     void setRate(double rate) {
         refill();
         m_rate = rate;
     }
 
+    /**
+     * @brief Update bucket capacity and clamp current tokens if needed.
+     * @param capacity Maximum token count.
+     */
     void setCapacity(size_t capacity) {
         m_capacity = capacity;
-        int64_t maxTokens = static_cast<int64_t>(capacity) * kPrecision;
+        int64_t max_tokens = static_cast<int64_t>(capacity) * kPrecision;
         int64_t current = m_tokens.load(std::memory_order_acquire);
-        while (current > maxTokens) {
-            if (m_tokens.compare_exchange_weak(current, maxTokens,
+        while (current > max_tokens) {
+            if (m_tokens.compare_exchange_weak(current, max_tokens,
                     std::memory_order_acq_rel, std::memory_order_acquire)) {
                 break;
             }
         }
     }
 
+    /**
+     * @brief Return configured refill rate.
+     * @return Tokens per second.
+     */
     double rate() const { return m_rate; }
+
+    /**
+     * @brief Return configured bucket capacity.
+     * @return Maximum token count.
+     */
     size_t capacity() const { return m_capacity; }
 
 private:
-    static constexpr int64_t kPrecision = 1000000; // 微秒精度
+    static constexpr int64_t kPrecision = 1000000;
 
-    friend class TokenBucketAwaitable;
-
-    struct WaiterInfo {
-        kernel::Waker waker;
-        size_t tokens;
-    };
-
-    moodycamel::ConcurrentQueue<WaiterInfo> m_waiters;
-
-    void wakeWaiters() {
-        WaiterInfo info;
-        while (m_waiters.try_dequeue(info)) {
-            if (tryAcquire(info.tokens)) {
-                info.waker.wakeUp();
-            } else {
-                m_waiters.enqueue(info);
-                break;
-            }
-        }
+    static int64_t nowTicks() {
+        return std::chrono::steady_clock::now().time_since_epoch().count();
     }
 
     void refill() {
-        auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-        int64_t lastTime = m_lastRefillTime.load(std::memory_order_acquire);
+        int64_t now = nowTicks();
+        int64_t last_time = m_last_refill_time.load(std::memory_order_acquire);
 
-        double elapsed = static_cast<double>(now - lastTime) / 1e9;
-        if (elapsed <= 0) return;
+        while (now > last_time) {
+            double elapsed_seconds = std::chrono::duration<double>(
+                std::chrono::steady_clock::duration(now - last_time)).count();
+            int64_t tokens_to_add = static_cast<int64_t>(elapsed_seconds * m_rate * kPrecision);
+            if (tokens_to_add <= 0) {
+                return;
+            }
 
-        if (!m_lastRefillTime.compare_exchange_strong(lastTime, now,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
-            return;
+            if (m_last_refill_time.compare_exchange_weak(last_time, now,
+                    std::memory_order_acq_rel, std::memory_order_acquire)) {
+                int64_t max_tokens = static_cast<int64_t>(m_capacity) * kPrecision;
+                int64_t current = m_tokens.load(std::memory_order_acquire);
+                int64_t desired;
+                do {
+                    desired = std::min(max_tokens, current + tokens_to_add);
+                } while (!m_tokens.compare_exchange_weak(current, desired,
+                    std::memory_order_acq_rel, std::memory_order_acquire));
+                return;
+            }
         }
-
-        int64_t newTokens = static_cast<int64_t>(elapsed * m_rate * kPrecision);
-        int64_t maxTokens = static_cast<int64_t>(m_capacity) * kPrecision;
-
-        int64_t current = m_tokens.load(std::memory_order_acquire);
-        int64_t desired;
-        do {
-            desired = std::min(current + newTokens, maxTokens);
-        } while (!m_tokens.compare_exchange_weak(current, desired,
-                std::memory_order_acq_rel, std::memory_order_acquire));
-
-        wakeWaiters();
     }
 
     double m_rate;
     size_t m_capacity;
     std::atomic<int64_t> m_tokens;
-    std::atomic<int64_t> m_lastRefillTime;
+    std::atomic<int64_t> m_last_refill_time;
 };
 
 /**
- * @brief 无锁滑动窗口限流器
+ * @brief Thread-safe sliding-window limiter.
  *
- * 使用原子计数器和时间窗口实现，简化版高性能设计。
+ * Each successful acquisition records a timestamp. Calls beyond maxRequests
+ * inside the active window return false. Old timestamps are removed during
+ * tryAcquire(). This type uses an internal mutex to protect the request window,
+ * so it is intentionally not exposed as a coroutine awaitable.
  */
 class SlidingWindowLimiter {
 public:
     SlidingWindowLimiter(size_t maxRequests, std::chrono::milliseconds windowSize)
-        : m_maxRequests(maxRequests)
-        , m_windowSizeNs(std::chrono::duration_cast<std::chrono::nanoseconds>(windowSize).count())
-        , m_windowStart(std::chrono::steady_clock::now().time_since_epoch().count())
-        , m_count(0) {}
+        : m_max_requests(maxRequests)
+        , m_window_size(windowSize) {}
 
     /**
-     * @brief 尝试获取（非阻塞）
-     * @return true 成功，false 失败
+     * @brief Try to record one request in the current window.
+     * @return true when the request is allowed; false when rate limited.
      */
     bool tryAcquire() {
-        auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-        int64_t windowStart = m_windowStart.load(std::memory_order_acquire);
+        auto now = std::chrono::steady_clock::now();
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-        if (now - windowStart >= m_windowSizeNs) {
-            if (m_windowStart.compare_exchange_strong(windowStart, now,
-                    std::memory_order_acq_rel, std::memory_order_acquire)) {
-                m_count.store(0, std::memory_order_release);
-                wakeWaiters();
-            }
+        auto cutoff = now - m_window_size;
+        while (!m_requests.empty() && m_requests.front() < cutoff) {
+            m_requests.pop_front();
         }
 
-        size_t current = m_count.load(std::memory_order_acquire);
-        while (current < m_maxRequests) {
-            if (m_count.compare_exchange_weak(current, current + 1,
-                    std::memory_order_acq_rel, std::memory_order_acquire)) {
-                return true;
-            }
+        if (m_requests.size() < m_max_requests) {
+            m_requests.push_back(now);
+            return true;
         }
         return false;
     }
 
     /**
-     * @brief 异步获取
-     * @return 可等待对象，支持 co_await 和 .timeout()
+     * @brief Return configured request limit.
+     * @return Maximum requests in the window.
      */
-    SlidingWindowAwaitable acquire();
+    size_t maxRequests() const { return m_max_requests; }
 
-    size_t currentCount() const {
-        return m_count.load(std::memory_order_acquire);
-    }
-
-    void reset() {
-        m_windowStart.store(std::chrono::steady_clock::now().time_since_epoch().count(),
-                            std::memory_order_release);
-        m_count.store(0, std::memory_order_release);
-        wakeWaiters();
-    }
+    /**
+     * @brief Return configured window size.
+     * @return Sliding window duration.
+     */
+    std::chrono::milliseconds windowSize() const { return m_window_size; }
 
 private:
-    friend class SlidingWindowAwaitable;
-
-    moodycamel::ConcurrentQueue<kernel::Waker> m_waiters;
-
-    void wakeWaiters() {
-        kernel::Waker waker;
-        while (m_waiters.try_dequeue(waker)) {
-            if (tryAcquire()) {
-                waker.wakeUp();
-            } else {
-                m_waiters.enqueue(waker);
-                break;
-            }
-        }
-    }
-
-    size_t m_maxRequests;
-    int64_t m_windowSizeNs;
-    std::atomic<int64_t> m_windowStart;
-    std::atomic<size_t> m_count;
+    size_t m_max_requests;
+    std::chrono::milliseconds m_window_size;
+    std::deque<std::chrono::steady_clock::time_point> m_requests;
+    std::mutex m_mutex;
 };
 
 /**
- * @brief 无锁漏桶限流器
+ * @brief Non-blocking leaky bucket limiter.
  *
- * 使用原子变量实现，控制请求的平滑流出。
+ * The bucket leaks at a configured rate and accepts new water only when the
+ * capacity would not be exceeded. tryAcquire() is thread-safe and non-blocking.
  */
 class LeakyBucketLimiter {
 public:
@@ -302,22 +252,22 @@ public:
         : m_rate(rate)
         , m_capacity(capacity)
         , m_water(0)
-        , m_lastLeakTime(std::chrono::steady_clock::now().time_since_epoch().count()) {}
+        , m_last_leak_time(nowTicks()) {}
 
     /**
-     * @brief 尝试获取（非阻塞）
-     * @param amount 获取数量
-     * @return true 成功，false 失败
+     * @brief Try to add water to the bucket.
+     * @param amount Requested amount.
+     * @return true when capacity allows the amount; false otherwise.
      */
     bool tryAcquire(size_t amount = 1) {
         leak();
 
-        int64_t needed = static_cast<int64_t>(amount) * kPrecision;
-        int64_t maxWater = static_cast<int64_t>(m_capacity) * kPrecision;
-
+        int64_t requested = static_cast<int64_t>(amount) * kPrecision;
+        int64_t max_water = static_cast<int64_t>(m_capacity) * kPrecision;
         int64_t current = m_water.load(std::memory_order_acquire);
-        while (current + needed <= maxWater) {
-            if (m_water.compare_exchange_weak(current, current + needed,
+
+        while (current + requested <= max_water) {
+            if (m_water.compare_exchange_weak(current, current + requested,
                     std::memory_order_acq_rel, std::memory_order_acquire)) {
                 return true;
             }
@@ -326,214 +276,62 @@ public:
     }
 
     /**
-     * @brief 异步获取
-     * @param amount 获取数量
-     * @return 可等待对象，支持 co_await 和 .timeout()
+     * @brief Return current bucket water amount.
+     * @return Water amount as floating-point value.
      */
-    LeakyBucketAwaitable acquire(size_t amount = 1);
-
-    double currentLevel() const {
+    double currentWater() const {
         return static_cast<double>(m_water.load(std::memory_order_acquire)) / kPrecision;
     }
+
+    /**
+     * @brief Return configured leak rate.
+     * @return Units leaked per second.
+     */
+    double rate() const { return m_rate; }
+
+    /**
+     * @brief Return configured bucket capacity.
+     * @return Maximum water amount.
+     */
+    size_t capacity() const { return m_capacity; }
 
 private:
     static constexpr int64_t kPrecision = 1000000;
 
-    friend class LeakyBucketAwaitable;
-
-    struct WaiterInfo {
-        kernel::Waker waker;
-        size_t amount;
-    };
-
-    moodycamel::ConcurrentQueue<WaiterInfo> m_waiters;
-
-    void wakeWaiters() {
-        WaiterInfo info;
-        while (m_waiters.try_dequeue(info)) {
-            if (tryAcquire(info.amount)) {
-                info.waker.wakeUp();
-            } else {
-                m_waiters.enqueue(info);
-                break;
-            }
-        }
+    static int64_t nowTicks() {
+        return std::chrono::steady_clock::now().time_since_epoch().count();
     }
 
     void leak() {
-        auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-        int64_t lastTime = m_lastLeakTime.load(std::memory_order_acquire);
+        int64_t now = nowTicks();
+        int64_t last_time = m_last_leak_time.load(std::memory_order_acquire);
 
-        double elapsed = static_cast<double>(now - lastTime) / 1e9;
-        if (elapsed <= 0) return;
+        while (now > last_time) {
+            double elapsed_seconds = std::chrono::duration<double>(
+                std::chrono::steady_clock::duration(now - last_time)).count();
+            int64_t leaked = static_cast<int64_t>(elapsed_seconds * m_rate * kPrecision);
+            if (leaked <= 0) {
+                return;
+            }
 
-        if (!m_lastLeakTime.compare_exchange_strong(lastTime, now,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
-            return;
+            if (m_last_leak_time.compare_exchange_weak(last_time, now,
+                    std::memory_order_acq_rel, std::memory_order_acquire)) {
+                int64_t current = m_water.load(std::memory_order_acquire);
+                int64_t desired;
+                do {
+                    desired = std::max<int64_t>(0, current - leaked);
+                } while (!m_water.compare_exchange_weak(current, desired,
+                    std::memory_order_acq_rel, std::memory_order_acquire));
+                return;
+            }
         }
-
-        int64_t leaked = static_cast<int64_t>(elapsed * m_rate * kPrecision);
-
-        int64_t current = m_water.load(std::memory_order_acquire);
-        int64_t desired;
-        do {
-            desired = std::max(int64_t(0), current - leaked);
-        } while (!m_water.compare_exchange_weak(current, desired,
-                std::memory_order_acq_rel, std::memory_order_acquire));
-
-        wakeWaiters();
     }
 
     double m_rate;
     size_t m_capacity;
     std::atomic<int64_t> m_water;
-    std::atomic<int64_t> m_lastLeakTime;
+    std::atomic<int64_t> m_last_leak_time;
 };
-
-// ==================== Awaitable 实现 ====================
-
-class SemaphoreAwaitable : public kernel::TimeoutSupport<SemaphoreAwaitable> {
-public:
-    SemaphoreAwaitable(CountingSemaphore* sem, size_t n)
-        : m_semaphore(sem), m_count(n) {}
-
-    bool await_ready() const noexcept {
-        if (m_semaphore->tryAcquire(m_count)) {
-            const_cast<SemaphoreAwaitable*>(this)->m_result = {};
-            return true;
-        }
-        return false;
-    }
-
-    template <typename Promise>
-    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
-        m_semaphore->m_waiters.enqueue({kernel::Waker(handle), m_count});
-        if (m_semaphore->tryAcquire(m_count)) {
-            m_result = {};
-            return false;
-        }
-        return true;
-    }
-
-    std::expected<void, kernel::IOError> await_resume() noexcept { return m_result; }
-
-private:
-    friend struct kernel::WithTimeout<SemaphoreAwaitable>;
-    CountingSemaphore* m_semaphore;
-    size_t m_count;
-    std::expected<void, kernel::IOError> m_result;
-};
-
-inline SemaphoreAwaitable CountingSemaphore::acquire(size_t n) {
-    return SemaphoreAwaitable(this, n);
-}
-
-class TokenBucketAwaitable : public kernel::TimeoutSupport<TokenBucketAwaitable> {
-public:
-    TokenBucketAwaitable(TokenBucketLimiter* limiter, size_t tokens)
-        : m_limiter(limiter), m_tokens(tokens) {}
-
-    bool await_ready() const noexcept {
-        if (m_limiter->tryAcquire(m_tokens)) {
-            const_cast<TokenBucketAwaitable*>(this)->m_result = {};
-            return true;
-        }
-        return false;
-    }
-
-    template <typename Promise>
-    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
-        m_limiter->m_waiters.enqueue({kernel::Waker(handle), m_tokens});
-        if (m_limiter->tryAcquire(m_tokens)) {
-            m_result = {};
-            return false;
-        }
-        return true;
-    }
-
-    std::expected<void, kernel::IOError> await_resume() noexcept { return m_result; }
-
-private:
-    friend struct kernel::WithTimeout<TokenBucketAwaitable>;
-    TokenBucketLimiter* m_limiter;
-    size_t m_tokens;
-    std::expected<void, kernel::IOError> m_result;
-};
-
-inline TokenBucketAwaitable TokenBucketLimiter::acquire(size_t tokens) {
-    return TokenBucketAwaitable(this, tokens);
-}
-
-class SlidingWindowAwaitable : public kernel::TimeoutSupport<SlidingWindowAwaitable> {
-public:
-    SlidingWindowAwaitable(SlidingWindowLimiter* limiter)
-        : m_limiter(limiter) {}
-
-    bool await_ready() const noexcept {
-        if (m_limiter->tryAcquire()) {
-            const_cast<SlidingWindowAwaitable*>(this)->m_result = {};
-            return true;
-        }
-        return false;
-    }
-
-    template <typename Promise>
-    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
-        m_limiter->m_waiters.enqueue(kernel::Waker(handle));
-        if (m_limiter->tryAcquire()) {
-            m_result = {};
-            return false;
-        }
-        return true;
-    }
-
-    std::expected<void, kernel::IOError> await_resume() noexcept { return m_result; }
-
-private:
-    friend struct kernel::WithTimeout<SlidingWindowAwaitable>;
-    SlidingWindowLimiter* m_limiter;
-    std::expected<void, kernel::IOError> m_result;
-};
-
-inline SlidingWindowAwaitable SlidingWindowLimiter::acquire() {
-    return SlidingWindowAwaitable(this);
-}
-
-class LeakyBucketAwaitable : public kernel::TimeoutSupport<LeakyBucketAwaitable> {
-public:
-    LeakyBucketAwaitable(LeakyBucketLimiter* limiter, size_t amount)
-        : m_limiter(limiter), m_amount(amount) {}
-
-    bool await_ready() const noexcept {
-        if (m_limiter->tryAcquire(m_amount)) {
-            const_cast<LeakyBucketAwaitable*>(this)->m_result = {};
-            return true;
-        }
-        return false;
-    }
-
-    template <typename Promise>
-    bool await_suspend(std::coroutine_handle<Promise> handle) noexcept {
-        m_limiter->m_waiters.enqueue({kernel::Waker(handle), m_amount});
-        if (m_limiter->tryAcquire(m_amount)) {
-            m_result = {};
-            return false;
-        }
-        return true;
-    }
-
-    std::expected<void, kernel::IOError> await_resume() noexcept { return m_result; }
-
-private:
-    friend struct kernel::WithTimeout<LeakyBucketAwaitable>;
-    LeakyBucketLimiter* m_limiter;
-    size_t m_amount;
-    std::expected<void, kernel::IOError> m_result;
-};
-
-inline LeakyBucketAwaitable LeakyBucketLimiter::acquire(size_t amount) {
-    return LeakyBucketAwaitable(this, amount);
-}
 
 } // namespace galay::utils
 

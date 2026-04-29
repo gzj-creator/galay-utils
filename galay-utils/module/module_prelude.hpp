@@ -21,9 +21,6 @@
 #if __has_include(<chrono>)
 #include <chrono>
 #endif
-#if __has_include(<concurrentqueue/moodycamel/concurrentqueue.h>)
-#include <concurrentqueue/moodycamel/concurrentqueue.h>
-#endif
 #if __has_include(<condition_variable>)
 #include <condition_variable>
 #endif

@@ -4,78 +4,13 @@
 #include <chrono>
 #include <iomanip>
 #include <atomic>
+#include <vector>
 
 // Include all modules
 #include "galay-utils/galay_utils.hpp"
-
-// galay-kernel for coroutine tests
-#include <galay-kernel/kernel/runtime.h>
-#include <galay-kernel/kernel/scheduler.hpp>
-#include <galay-kernel/kernel/task.h>
 #include <galay-utils/ratelimiter/limiter.hpp>
 
 using namespace galay::utils;
-
-using Coroutine = galay::kernel::Task<void>;
-
-namespace {
-
-Coroutine runAsyncSemaphoreCase(CountingSemaphore& asyncSem, std::atomic<bool>& testDone) {
-    co_await asyncSem.acquire(1);
-    assert(asyncSem.available() == 1);
-
-    auto result = co_await asyncSem.acquire(1).timeout(std::chrono::milliseconds(100));
-    assert(result.has_value());
-    assert(asyncSem.available() == 0);
-
-    asyncSem.release(2);
-    assert(asyncSem.available() == 2);
-
-    testDone.store(true, std::memory_order_release);
-    co_return;
-}
-
-Coroutine runCountingSemaphoreStressCase(CountingSemaphore& sem,
-                                         std::atomic<int>& acquired,
-                                         std::atomic<int>& completed,
-                                         int iterations) {
-    for (int i = 0; i < iterations; ++i) {
-        if (sem.tryAcquire(1)) {
-            ++acquired;
-            sem.release(1);
-        }
-    }
-    ++completed;
-    co_return;
-}
-
-Coroutine runTokenBucketStressCase(TokenBucketLimiter& limiter,
-                                   std::atomic<int>& acquired,
-                                   std::atomic<int>& completed,
-                                   int iterations) {
-    for (int i = 0; i < iterations; ++i) {
-        if (limiter.tryAcquire(1)) {
-            ++acquired;
-        }
-    }
-    ++completed;
-    co_return;
-}
-
-Coroutine runSlidingWindowStressCase(SlidingWindowLimiter& limiter,
-                                     std::atomic<int>& acquired,
-                                     std::atomic<int>& completed,
-                                     int iterations) {
-    for (int i = 0; i < iterations; ++i) {
-        if (limiter.tryAcquire()) {
-            ++acquired;
-        }
-    }
-    ++completed;
-    co_return;
-}
-
-} // namespace
 
 // ==================== String Tests ====================
 void testString() {
@@ -438,9 +373,14 @@ void testRateLimiter() {
 
     assert(sem.tryAcquire(2));
     assert(sem.available() == 1);
+    assert(!sem.tryAcquire(2));
+    assert(sem.available() == 1);
 
     sem.release(2);
     assert(sem.available() == 3);
+    assert(sem.tryAcquire(3));
+    assert(sem.available() == 0);
+    sem.release(3);
 
     // Token bucket
     TokenBucketLimiter tokenBucket(100, 10); // 100 tokens/sec, capacity 10
@@ -448,9 +388,20 @@ void testRateLimiter() {
     // Should be able to acquire immediately (bucket starts full)
     assert(tokenBucket.tryAcquire(5));
     assert(tokenBucket.availableTokens() >= 4); // At least 5 consumed
+    assert(tokenBucket.tryAcquire(5));
+    assert(!tokenBucket.tryAcquire(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    assert(tokenBucket.tryAcquire(1));
+    tokenBucket.setCapacity(3);
+    assert(tokenBucket.capacity() == 3);
+    assert(tokenBucket.availableTokens() <= 3.0);
+    tokenBucket.setRate(200);
+    assert(tokenBucket.rate() == 200);
 
     // Sliding window
     SlidingWindowLimiter slidingWindow(5, std::chrono::milliseconds(100));
+    assert(slidingWindow.maxRequests() == 5);
+    assert(slidingWindow.windowSize() == std::chrono::milliseconds(100));
 
     for (int i = 0; i < 5; ++i) {
         assert(slidingWindow.tryAcquire());
@@ -460,23 +411,21 @@ void testRateLimiter() {
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
     assert(slidingWindow.tryAcquire()); // Should work after window expires
 
-    // 协程环境测试
-    galay::kernel::Runtime runtime = galay::kernel::RuntimeBuilder().ioSchedulerCount(2).computeSchedulerCount(0).build();
-    runtime.start();
+    // Leaky bucket
+    LeakyBucketLimiter leakyBucket(100, 3);
+    assert(leakyBucket.rate() == 100);
+    assert(leakyBucket.capacity() == 3);
+    assert(leakyBucket.tryAcquire(2));
+    assert(!leakyBucket.tryAcquire(2));
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    assert(leakyBucket.tryAcquire(1));
+    assert(leakyBucket.currentWater() <= 3.0);
 
-    CountingSemaphore asyncSem(2);
-    std::atomic<bool> testDone{false};
-
-    // Keep task storage alive in this scope before handing ownership to scheduler.
-    auto asyncSemTask = runAsyncSemaphoreCase(asyncSem, testDone);
-    (void)galay::kernel::scheduleTask(runtime.getNextIOScheduler(), std::move(asyncSemTask));
-
-    // 等待协程完成
-    while (!testDone.load(std::memory_order_acquire)) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    runtime.stop();
+    LeakyBucketLimiter slowLeakyBucket(10, 2);
+    assert(slowLeakyBucket.tryAcquire(2));
+    assert(!slowLeakyBucket.tryAcquire(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(120));
+    assert(slowLeakyBucket.tryAcquire(1));
 
     std::cout << "RateLimiter tests passed!" << std::endl;
 }
@@ -1621,33 +1570,30 @@ void stressTestCircuitBreaker() {
 void stressTestRateLimiter() {
     std::cout << "=== Stress Testing RateLimiter ===" << std::endl;
 
-    // 多调度器协程压测
-    const int numSchedulers = 4;
-    const int coroutinesPerScheduler = 1000;
+    const int threadCount = 4;
+    const int iterations = 100000;
 
     // Test CountingSemaphore
     {
         CountingSemaphore sem(100);
         std::atomic<int> acquired{0};
-        std::atomic<int> completed{0};
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        galay::kernel::Runtime runtime = galay::kernel::RuntimeBuilder().ioSchedulerCount(numSchedulers).computeSchedulerCount(0).build();
-        runtime.start();
-
-        for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
-            (void)galay::kernel::scheduleTask(
-                runtime.getNextIOScheduler(),
-                runCountingSemaphoreStressCase(sem, acquired, completed, 100));
+        std::vector<std::thread> threads;
+        for (int thread_index = 0; thread_index < threadCount; ++thread_index) {
+            threads.emplace_back([&]() {
+                for (int i = 0; i < iterations; ++i) {
+                    if (sem.tryAcquire(1)) {
+                        ++acquired;
+                        sem.release(1);
+                    }
+                }
+            });
         }
-
-        // 等待所有协程完成
-        while (completed < numSchedulers * coroutinesPerScheduler) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        for (auto& thread : threads) {
+            thread.join();
         }
-
-        runtime.stop();
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -1655,8 +1601,8 @@ void stressTestRateLimiter() {
         int totalOps = acquired.load();
         double opsPerSec = duration > 0 ? (totalOps * 1000.0) / duration : 0;
 
-        std::cout << "  [CountingSemaphore - Coroutine]" << std::endl;
-        std::cout << "    Schedulers: " << numSchedulers << ", Coroutines: " << numSchedulers * coroutinesPerScheduler << std::endl;
+        std::cout << "  [CountingSemaphore - Thread]" << std::endl;
+        std::cout << "    Threads: " << threadCount << ", Iterations: " << threadCount * iterations << std::endl;
         std::cout << "    Duration: " << duration << "ms" << std::endl;
         std::cout << "    Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
         std::cout << "    Acquired: " << acquired << std::endl;
@@ -1667,33 +1613,31 @@ void stressTestRateLimiter() {
     {
         TokenBucketLimiter limiter(10000000, 100000); // 10M tokens/sec, capacity 100000
         std::atomic<int> acquired{0};
-        std::atomic<int> completed{0};
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        galay::kernel::Runtime runtime = galay::kernel::RuntimeBuilder().ioSchedulerCount(numSchedulers).computeSchedulerCount(0).build();
-        runtime.start();
-
-        for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
-            (void)galay::kernel::scheduleTask(
-                runtime.getNextIOScheduler(),
-                runTokenBucketStressCase(limiter, acquired, completed, 100));
+        std::vector<std::thread> threads;
+        for (int thread_index = 0; thread_index < threadCount; ++thread_index) {
+            threads.emplace_back([&]() {
+                for (int i = 0; i < iterations; ++i) {
+                    if (limiter.tryAcquire(1)) {
+                        ++acquired;
+                    }
+                }
+            });
         }
-
-        while (completed < numSchedulers * coroutinesPerScheduler) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        for (auto& thread : threads) {
+            thread.join();
         }
-
-        runtime.stop();
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-        int totalOps = numSchedulers * coroutinesPerScheduler * 100;
+        int totalOps = threadCount * iterations;
         double opsPerSec = duration > 0 ? (totalOps * 1000.0) / duration : 0;
 
-        std::cout << "  [TokenBucketLimiter - Coroutine]" << std::endl;
-        std::cout << "    Schedulers: " << numSchedulers << ", Coroutines: " << numSchedulers * coroutinesPerScheduler << std::endl;
+        std::cout << "  [TokenBucketLimiter - Thread]" << std::endl;
+        std::cout << "    Threads: " << threadCount << ", Iterations: " << totalOps << std::endl;
         std::cout << "    Duration: " << duration << "ms" << std::endl;
         std::cout << "    Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
         std::cout << "    Acquired: " << acquired << std::endl;
@@ -1703,33 +1647,31 @@ void stressTestRateLimiter() {
     {
         SlidingWindowLimiter limiter(1000000, std::chrono::milliseconds(1000));
         std::atomic<int> acquired{0};
-        std::atomic<int> completed{0};
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        galay::kernel::Runtime runtime = galay::kernel::RuntimeBuilder().ioSchedulerCount(numSchedulers).computeSchedulerCount(0).build();
-        runtime.start();
-
-        for (int c = 0; c < numSchedulers * coroutinesPerScheduler; ++c) {
-            (void)galay::kernel::scheduleTask(
-                runtime.getNextIOScheduler(),
-                runSlidingWindowStressCase(limiter, acquired, completed, 50));
+        std::vector<std::thread> threads;
+        for (int thread_index = 0; thread_index < threadCount; ++thread_index) {
+            threads.emplace_back([&]() {
+                for (int i = 0; i < iterations / 2; ++i) {
+                    if (limiter.tryAcquire()) {
+                        ++acquired;
+                    }
+                }
+            });
         }
-
-        while (completed < numSchedulers * coroutinesPerScheduler) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        for (auto& thread : threads) {
+            thread.join();
         }
-
-        runtime.stop();
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-        int totalOps = numSchedulers * coroutinesPerScheduler * 50;
+        int totalOps = threadCount * (iterations / 2);
         double opsPerSec = duration > 0 ? (totalOps * 1000.0) / duration : 0;
 
-        std::cout << "  [SlidingWindowLimiter - Coroutine]" << std::endl;
-        std::cout << "    Schedulers: " << numSchedulers << ", Coroutines: " << numSchedulers * coroutinesPerScheduler << std::endl;
+        std::cout << "  [SlidingWindowLimiter - Thread]" << std::endl;
+        std::cout << "    Threads: " << threadCount << ", Iterations: " << totalOps << std::endl;
         std::cout << "    Duration: " << duration << "ms" << std::endl;
         std::cout << "    Throughput: " << std::fixed << std::setprecision(0) << opsPerSec << " ops/sec" << std::endl;
         std::cout << "    Acquired: " << acquired << std::endl;

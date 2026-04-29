@@ -7,7 +7,7 @@
 | 入口 | 真实文件 / target | 说明 |
 |---|---|---|
 | 细粒度头文件 | `galay-utils/<module>/*.hpp` | 推荐作为最小依赖接入面 |
-| umbrella header | `galay-utils/galay_utils.hpp` | 聚合所有公开头，也引入 `RateLimiter` 的外部依赖 |
+| umbrella header | `galay-utils/galay_utils.hpp` | 聚合常用公开头，不默认导出 `RateLimiter` |
 | C++23 模块 | `galay-utils/module/galay_utils.cppm` | 通过 `import galay.utils;` 导入，导出面与 umbrella 基本一致 |
 
 完整公开头文件清单：
@@ -189,68 +189,34 @@
 
 ### `RateLimiter`
 
-`limiter.hpp` 的公开面分为四个限流器类型，以及四个与 `acquire()` 路径配套的 awaitable 类型：
+`limiter.hpp` 的公开面分为四个同步非阻塞限流器类型；异步 `acquire()` / awaitable 路径已移除，避免引入 `galay-kernel`，也避免把内部带锁实现暴露给协程调度线程：
 
 - `CountingSemaphore`
   - `tryAcquire(size_t n = 1)`
-  - `acquire(size_t n = 1) -> SemaphoreAwaitable`
   - `release(size_t n = 1)`
   - `available()`
 - `TokenBucketLimiter`
   - `TokenBucketLimiter(double rate, size_t capacity)`
   - `tryAcquire(size_t tokens = 1)`
-  - `acquire(size_t tokens = 1) -> TokenBucketAwaitable`
   - `availableTokens()`
   - `setRate(double)` / `setCapacity(size_t)`
   - `rate()` / `capacity()`
 - `SlidingWindowLimiter`
   - `SlidingWindowLimiter(size_t maxRequests, std::chrono::milliseconds windowSize)`
   - `tryAcquire()`
-  - `acquire() -> SlidingWindowAwaitable`
-  - `currentCount()`
-  - `reset()`
+  - `maxRequests()`
+  - `windowSize()`
 - `LeakyBucketLimiter`
   - `LeakyBucketLimiter(double rate, size_t capacity)`
   - `tryAcquire(size_t amount = 1)`
-  - `acquire(size_t amount = 1) -> LeakyBucketAwaitable`
-  - `currentLevel()`
-- `SemaphoreAwaitable`
-  - `SemaphoreAwaitable(CountingSemaphore*, size_t)`
-  - `await_ready() noexcept`
-  - `await_suspend(std::coroutine_handle<>) noexcept`
-  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
-- `TokenBucketAwaitable`
-  - `TokenBucketAwaitable(TokenBucketLimiter*, size_t)`
-  - `await_ready() noexcept`
-  - `await_suspend(std::coroutine_handle<>) noexcept`
-  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
-- `SlidingWindowAwaitable`
-  - `SlidingWindowAwaitable(SlidingWindowLimiter*)`
-  - `await_ready() noexcept`
-  - `await_suspend(std::coroutine_handle<>) noexcept`
-  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
-- `LeakyBucketAwaitable`
-  - `LeakyBucketAwaitable(LeakyBucketLimiter*, size_t)`
-  - `await_ready() noexcept`
-  - `await_suspend(std::coroutine_handle<>) noexcept`
-  - `await_resume() noexcept -> std::expected<void, kernel::IOError>`
-
-获取路径映射：
-
-- `CountingSemaphore::acquire(...)` → `SemaphoreAwaitable`
-- `TokenBucketLimiter::acquire(...)` → `TokenBucketAwaitable`
-- `SlidingWindowLimiter::acquire()` → `SlidingWindowAwaitable`
-- `LeakyBucketLimiter::acquire(...)` → `LeakyBucketAwaitable`
-
-等待语义：
-
-- 四个 awaitable 都继承 `kernel::TimeoutSupport<...>`，因此支持 `co_await limiter.acquire(...)`
-- 若链式调用 `.timeout(...)`，恢复点的结果仍是 `std::expected<void, kernel::IOError>`，而不是 `bool`
+  - `currentWater()`
+  - `rate()` / `capacity()`
 
 依赖边界：
 
-- 该头文件无条件依赖 `galay-kernel` 与 `concurrentqueue/moodycamel`
-- 因此它既是功能 API，也是外部依赖边界
+- 该头文件仅依赖标准库
+- 不再提供异步限流器，不再依赖 `galay-kernel` 或 `concurrentqueue/moodycamel`
+- `SlidingWindowLimiter` 内部使用互斥锁保护窗口队列；不要把限流器当作 coroutine awaitable 使用
 
 ### `CircuitBreaker`
 
@@ -567,7 +533,7 @@
 - 线程 / 资源相关能力集中在 `thread/`、`pool/`、`ratelimiter/`、`circuitbreaker/`、`process/`，检索时要额外关注阻塞/等待/资源释放语义
 - `ThreadPool::addTask(...)` 返回 `std::future<...>`，而 `execute(...)` 是 fire-and-forget 风格；两者不应混用为同一等待模型
 - `ObjectPool<T>` 与 `BlockingObjectPool<T>` 不是同一组方法：前者是“可扩容 + 非阻塞取对象”，后者是“固定池 + 阻塞等待”
-- `RateLimiter::*::acquire(...)` 返回对应 `*Awaitable`，`co_await` 后的恢复值是 `std::expected<void, kernel::IOError>`，不是直接 `bool`
+- `RateLimiter` 不再提供 `acquire(...)` awaitable；使用 `tryAcquire(...)` 获取同步非阻塞结果
 - `ConsistentHash` 当前没有 `getNodeStatus()` 公开 API；状态检索要从 `NodeStatus`、`PhysicalNode` 以及标记接口理解
 - `App::run(...)`、`ParserBase::*`、`Process::*`、`System::*` 直接面向进程 / 文件系统 / 环境变量等外部状态，细节问题需要结合真实调用环境理解
 - 资源生命周期主要集中在 `ThreadPool`、对象池、限流器、断路器与 `Process` 相关 API；纯字符串 / 哈希 / 编码工具通常是无状态或短生命周期值语义
