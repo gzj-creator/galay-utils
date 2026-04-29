@@ -27,7 +27,7 @@
 - 流控与容错：`CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter`、`CircuitBreaker`
 - 路由与分布式：`RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>`、`ConsistentHash`
 - 数据结构：`TrieTree`、`Mvcc<T>`、`Snapshot`、`Transaction<T>`、`Huffman*`
-- 应用与系统：`App` / `Cmd` / `Arg`、`ConfigParser`、`EnvParser`、`ParserManager`、`Process`
+- 应用与系统：`App` / `Cmd` / `Arg`、`ConfigParser`、`IniParser`、`EnvParser`、`TomlParser`、`ParserManager`、`Process`
 - 算法：`Base64Util`、`MD5Util`、`MurmurHash3Util`、`SaltGenerator`、`SHA256`、`HMAC`
 
 ## 快速开始

@@ -21,7 +21,7 @@ export {
 #include "galay-utils/huffman/huffman.hpp"
 #include "galay-utils/mvcc/mvcc.hpp"
 #include "galay-utils/args/app.hpp"
-#include "galay-utils/parser/parser.hpp"
+#include "galay-utils/parser/parser_manager.hpp"
 #include "galay-utils/process/process.hpp"
 #include "galay-utils/balancer/balancer.hpp"
 

@@ -689,6 +689,12 @@ debug = true
     auto dbKeys = config.getKeysInSection("database");
     assert(dbKeys.size() == 3);
 
+    // INI parser
+    IniParser ini;
+    assert(ini.parseString(configContent));
+    assert(ini.getValue("database.host").value() == "localhost");
+    assert(ini.getValueAs<int>("server.port", 0) == 8080);
+
     // Env parser
     EnvParser env;
     std::string envContent = R"(
@@ -702,6 +708,106 @@ DEBUG=true
     assert(env.getValue("DATABASE_URL").value() == "postgres://localhost/db");
     assert(env.getValue("API_KEY").value() == "secret123");
     assert(env.getValue("DEBUG").value() == "true");
+
+    // TOML parser
+    TomlParser toml;
+    std::string tomlContent = R"(
+title = "galay-utils"
+enabled = true
+ports = [8000, 8001, 8002]
+
+[database]
+host = "localhost"
+port = 5432
+ratio = 0.75
+tags = ["primary", "readonly"]
+)";
+
+    assert(toml.parseString(tomlContent));
+    assert(toml.getValue("title").value() == "galay-utils");
+    assert(toml.getValue("enabled").value() == "true");
+    assert(toml.getValueAs<int>("database.port", 0) == 5432);
+    assert(toml.getValue("database.ratio").value() == "0.75");
+
+    auto ports = toml.getArray("ports");
+    assert(ports.size() == 3 && ports[0] == "8000" && ports[2] == "8002");
+
+    auto tags = toml.getArray("database.tags");
+    assert(tags.size() == 2 && tags[0] == "primary" && tags[1] == "readonly");
+
+    auto tomlParser = ParserManager::instance().createParser("config.toml");
+    assert(tomlParser != nullptr);
+    assert(tomlParser->parseString(tomlContent));
+    assert(tomlParser->getValue("database.host").value() == "localhost");
+
+    TomlParser tomlEdge;
+    std::string tomlEdgeContent = R"(
+# full-line comment
+title = "value # not comment" # inline comment
+path = 'literal/path'
+empty = []
+owner.name = "galay"
+
+[server]
+enabled = false
+ports = [8080, 8081]
+)";
+
+    assert(tomlEdge.parseString(tomlEdgeContent));
+    assert(tomlEdge.getValue("title").value() == "value # not comment");
+    assert(tomlEdge.getValue("path").value() == "literal/path");
+    assert(tomlEdge.getValue("owner.name").value() == "galay");
+    assert(tomlEdge.getValue("server.enabled").value() == "false");
+
+    auto emptyArray = tomlEdge.getArray("empty");
+    assert(emptyArray.empty());
+
+    auto serverPorts = tomlEdge.getArray("server.ports");
+    assert(serverPorts.size() == 2 && serverPorts[0] == "8080" && serverPorts[1] == "8081");
+
+    TomlParser invalidToml;
+    assert(!invalidToml.parseString("invalid line"));
+    assert(!invalidToml.lastError().empty());
+    assert(!invalidToml.parseString("bad = [1, 2"));
+    assert(!invalidToml.parseString("[[products]]\nname = \"x\""));
+    assert(!invalidToml.parseString("[]\nname = \"x\""));
+    assert(!invalidToml.parseString("name = \"unterminated"));
+    assert(!invalidToml.parseString("path = 'unterminated"));
+    assert(!invalidToml.parseString("name = \"a\"\nname = \"b\""));
+    assert(!invalidToml.parseString("[database]\nhost = \"a\"\n[database]\nhost = \"b\""));
+    assert(!invalidToml.parseString("= \"value\""));
+    assert(!invalidToml.parseString(".name = \"value\""));
+    assert(!invalidToml.parseString("name. = \"value\""));
+    assert(!invalidToml.parseString("[database.]\nhost = \"localhost\""));
+    assert(!invalidToml.parseString("ports = [1,,2]"));
+    assert(!invalidToml.parseString("names = [\"a]"));
+    assert(!invalidToml.parseString("nested = [[1], [2]]"));
+    assert(!invalidToml.parseString("inline = { name = \"galay\" }"));
+    assert(!invalidToml.parseString("date = 2026-04-29T10:00:00Z"));
+    assert(!invalidToml.parseString("enabled = True"));
+    assert(!invalidToml.parseString("text = \"bad \\q escape\""));
+    assert(!invalidToml.parseString("text = \"bad \\u12 escape\""));
+    assert(!invalidToml.parseString("number = 01"));
+    assert(!invalidToml.parseString("number = 1."));
+    assert(!invalidToml.parseString("number = .1"));
+    assert(!invalidToml.parseString("number = 1_000"));
+    assert(!invalidToml.parseString("number = 1e10"));
+    assert(!invalidToml.parseString("number = nan"));
+    assert(!invalidToml.parseString("number = inf"));
+    assert(!invalidToml.parseString("mixed = [1, \"a\"]"));
+    assert(!invalidToml.parseString("trailing = [1, 2,]"));
+    assert(!invalidToml.parseString("database = \"x\"\n[database]\nhost = \"localhost\""));
+    assert(!invalidToml.parseString("[database]\nhost = \"localhost\"\n[database.host]\nport = 1"));
+    assert(!invalidToml.parseString("a = 1\na.b = 2"));
+    assert(!invalidToml.parseString("a.b = 2\na = 1"));
+    assert(!invalidToml.parseString("[db]\nhost = \"a\"\n[db]\nport = 1"));
+    assert(!invalidToml.parseString("key = # missing"));
+    assert(!invalidToml.parseString("\"quoted key\" = 1"));
+    assert(!invalidToml.parseString("中文 = 1"));
+
+    TomlParser tomlCrlf;
+    assert(tomlCrlf.parseString("name = \"galay\"\r\n[server]\r\nport = 8080\r\n"));
+    assert(tomlCrlf.getValue("server.port").value() == "8080");
 
     std::cout << "Parser tests passed!" << std::endl;
 }

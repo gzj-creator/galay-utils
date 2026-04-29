@@ -29,7 +29,7 @@
 - `galay-utils/mvcc/mvcc.hpp`
 - `galay-utils/huffman/huffman.hpp`
 - `galay-utils/args/app.hpp`
-- `galay-utils/parser/parser.hpp`
+- `galay-utils/parser/parser_manager.hpp`
 - `galay-utils/process/process.hpp`
 - `galay-utils/algorithm/base64.hpp`
 - `galay-utils/algorithm/md5.hpp`
@@ -388,7 +388,7 @@
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
 | App | `galay-utils/args/app.hpp` | `ArgType`、`ArgValue`、`Arg`、`Cmd`、`App` |
-| Parser | `galay-utils/parser/parser.hpp` | `ParserBase`、`ConfigParser`、`EnvParser`、`ParserManager` |
+| Parser | `galay-utils/parser/parser_manager.hpp` | `ParserBase`、`ConfigParser`、`IniParser`、`EnvParser`、`TomlParser`、`ParserManager` |
 | Process | `galay-utils/process/process.hpp` | `ProcessId`、`ExitStatus`、`Process` |
 
 ### `App`
@@ -437,13 +437,19 @@
 - `ConfigParser`
   - `getKeysInSection`
   - `getArray`
+- `IniParser`
+  - 继承 `ConfigParser`
 - `EnvParser`
   - 继承 `ParserBase`
+- `TomlParser`
+  - 继承 `ParserBase`
+  - 支持基础 key-value、section、dotted key、字符串、数字、布尔值和单行数组
+  - `getArray`
 - `ParserManager`
   - `instance()`
   - `registerParser(extension, creator)`
   - `createParser(path)`
-  - 默认注册：`.conf` / `.ini` → `ConfigParser`，`.env` → `EnvParser`
+  - 默认注册：`.conf` → `ConfigParser`，`.ini` → `IniParser`，`.env` → `EnvParser`，`.toml` → `TomlParser`
 
 ### `Process`
 
@@ -550,7 +556,7 @@
 
 ## 8. 已知 API 边界
 
-- 文档中不再使用 `IniParser`；当前公开类型为 `ConfigParser`
+- `.ini` 使用独立公开类型 `IniParser`；`.toml` 使用 `TomlParser`
 - 文档中不再使用“API 索引”旧名；本页 canonical 标题为“API参考”
 - 当前仓库没有受版本控制的 benchmark target；性能页只保留“当前无 benchmark 资产”的边界说明
 

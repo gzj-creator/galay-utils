@@ -1,9 +1,23 @@
 # CHANGELOG
 
 维护说明：
-- 未打 tag 的改动先写入 `
+- 未打 tag 的改动先写入 `## [Unreleased]`。
+- 需要发版时，把 `Unreleased` 条目整理进新版本节，并补回空的 `Unreleased`。
+- 版本格式统一为 `vX.Y.Z`，日期使用 `YYYY-MM-DD`。
 
 ## [Unreleased]
+
+### Added
+- 新增 `IniParser` 与 `TomlParser`，并补充 `.toml` 扩展名解析注册能力。
+- 新增 parser 公共拆分头：`parser_base.hpp`、`detail.hpp`、`config.hpp`、`env.hpp`、`ini.hpp`、`toml.hpp`、`parser_manager.hpp`。
+
+### Changed
+- 将原 `parser.hpp` 调整为统一入口封装头，改为包含 `parser_manager.hpp`。
+- 更新聚合导出头与 C++ 模块入口中的 parser 引用路径，统一使用 `parser_manager.hpp`。
+- 同步更新 README 与 API/使用指南/示例/FAQ 文档中的 parser 类型与默认扩展名说明。
+
+### Fixed
+- 补充 parser 相关测试，覆盖 INI/TOML 正常路径与常见非法输入场景。
 
 ## [v2.0.0] - 2026-04-29
 

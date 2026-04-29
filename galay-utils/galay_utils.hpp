@@ -45,7 +45,7 @@
 #include "args/app.hpp"
 
 // Configuration parsing
-#include "parser/parser.hpp"
+#include "galay-utils/parser/parser_manager.hpp"
 
 // Process management
 #include "process/process.hpp"
