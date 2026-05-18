@@ -33,3 +33,13 @@
   - 移除 `RateLimiter` 的异步 `acquire()` / awaitable 路径，只保留同步非阻塞 `tryAcquire()` 接口。
   - 移除限流器对 `galay-kernel` 与 `concurrentqueue/moodycamel` 的依赖，测试构建不再查找或链接 `galay-kernel`。
   - 补充 TOML 异常解析测试与限流器正确性/多线程压测，覆盖常见非法 TOML、容量超限、速率恢复和并发获取路径。
+
+## v2.1.1 - 2026-05-18
+
+- 版本级别：小版本（patch）
+- Git 提交消息：`chore: 统一 CMake 导出文件命名`
+- Git Tag：`v2.1.1`
+- 自述摘要：
+  - 将安装导出的 CMake targets 文件改为 `galayUtilsConfigTargets.cmake`，并同步 `galay-utils-config.cmake` 的 include 路径。
+  - Release 安装随主 targets 文件生成 `galayUtilsConfigTargets-release.cmake`，统一驼峰导出文件命名。
+  - 将 CMake project 版本提升到 `2.1.1`，确保源码版本元数据、tag 与发布记录一致。

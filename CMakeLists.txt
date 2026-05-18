@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(galay-utils VERSION 2.1.0 LANGUAGES CXX)
+project(galay-utils VERSION 2.1.1 LANGUAGES CXX)
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
@@ -129,7 +129,7 @@ install(DIRECTORY galay-utils/
 )
 
 install(EXPORT galay-utils-targets
-    FILE galay-utils-targets.cmake
+    FILE galayUtilsConfigTargets.cmake
     NAMESPACE galay::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/galay-utils
 )
