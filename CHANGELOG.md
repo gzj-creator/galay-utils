@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Docs
 - 为所有头文件添加中文 Doxygen 文档注释，包括文件级、类/结构体级、方法级注释以及成员变量行尾注释
 
+### Fixed
+- 移除 `NonCopyable`、`NonMovable`、`Singleton` 与 `BackTrace::getStackTrace` 中重复生成的声明，修复 umbrella header 编译失败。
+
 ## [v2.1.1] - 2026-05-18
 
 ### Changed

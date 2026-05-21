@@ -3,7 +3,7 @@
 ## v2.1.2 - 2026-05-20
 
 - **版本级别**: patch
-- **Git 提交消息**: docs: 为所有头文件接口添加中文 Doxygen 文档注释
+- **Git 提交消息**: fix: 修复头文件重复声明导致的编译失败
 - **Git Tag**: v2.1.2
 
 ### 变更摘要
@@ -11,6 +11,7 @@
 - 为项目所有头文件添加完整的中文 Doxygen 文档注释
 - 注释覆盖文件级（@file/@brief/@author/@version/@details）、类/结构体级（@brief/@details/@tparam/@note）、方法级（@brief/@param/@return）以及成员变量和枚举值的行尾 ///< 注释
 - 更新 CMakeLists.txt 版本号至 v2.1.2
+- 移除 `NonCopyable`、`NonMovable`、`Singleton` 与 `BackTrace::getStackTrace` 中重复生成的声明，修复 `galay_utils.hpp` 聚合头编译失败。
 
 ## v2.1.1 - 2026-05-18
 

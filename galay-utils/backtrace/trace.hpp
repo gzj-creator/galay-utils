@@ -40,7 +40,6 @@ public:
      * @return 堆栈字符串向量
      */
     static std::vector<std::string> getStackTrace(int maxFrames = 64, int skipFrames = 1) {
-    static std::vector<std::string> getStackTrace(int maxFrames = 64, int skipFrames = 1) {
         std::vector<std::string> result;
 
 #if defined(__APPLE__) || defined(__linux__)
