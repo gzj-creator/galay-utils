@@ -1,3 +1,13 @@
+/**
+ * @file salt.hpp
+ * @brief 随机盐值生成器
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供多种格式的盐值生成功能，包括十六进制、Base64、原始字节、
+ *          自定义字符集、bcrypt 风格盐值、带时间戳盐值，以及格式验证。
+ */
+
 #ifndef GALAY_UTILS_SALT_H
 #define GALAY_UTILS_SALT_H
 
@@ -11,38 +21,88 @@
 
 namespace galay::utils
 {
+    /**
+     * @brief 随机盐值生成器
+     * @details 提供多种格式的盐值生成，包括普通随机和密码学安全随机两种模式。
+     */
     class SaltGenerator
     {
     public:
-        // Generate salt as hex string
+        /**
+         * @brief 生成十六进制格式的盐值
+         * @param length 盐值字节长度（默认 32）
+         * @return 十六进制格式的盐值字符串
+         */
         static std::string generateHex(size_t length = 32);
 
-        // Generate salt as base64 string
+        /**
+         * @brief 生成 Base64 格式的盐值
+         * @param length 盐值字节长度（默认 32）
+         * @return Base64 格式的盐值字符串
+         */
         static std::string generateBase64(size_t length = 32);
 
-        // Generate salt as raw bytes
+        /**
+         * @brief 生成原始字节的盐值
+         * @param length 盐值字节长度（默认 32）
+         * @return 原始字节向量
+         */
         static std::vector<uint8_t> generateBytes(size_t length = 32);
 
-        // Generate salt with custom charset
+        /**
+         * @brief 使用自定义字符集生成盐值
+         * @param length 盐值长度
+         * @param charset 自定义字符集
+         * @return 自定义字符集生成的盐值字符串
+         */
         static std::string generateCustom(size_t length, const std::string& charset);
 
-        // Generate cryptographically secure random salt (hex)
+        /**
+         * @brief 生成密码学安全的十六进制盐值
+         * @param length 盐值字节长度（默认 32）
+         * @return 十六进制格式的安全盐值字符串
+         */
         static std::string generateSecureHex(size_t length = 32);
 
-        // Generate cryptographically secure random salt (base64)
+        /**
+         * @brief 生成密码学安全的 Base64 盐值
+         * @param length 盐值字节长度（默认 32）
+         * @return Base64 格式的安全盐值字符串
+         */
         static std::string generateSecureBase64(size_t length = 32);
 
-        // Generate cryptographically secure random bytes
+        /**
+         * @brief 生成密码学安全的随机字节
+         * @param length 字节长度（默认 32）
+         * @return 安全随机字节向量
+         */
         static std::vector<uint8_t> generateSecureBytes(size_t length = 32);
 
-        // Generate salt for password hashing (bcrypt-style, 22 chars base64)
+        /**
+         * @brief 生成 bcrypt 风格的盐值（22 字符 Base64）
+         * @return 22 字符的 bcrypt 风格盐值
+         */
         static std::string generateBcryptSalt();
 
-        // Generate salt with timestamp prefix (for time-based uniqueness)
+        /**
+         * @brief 生成带时间戳前缀的盐值
+         * @param length 盐值总长度（默认 32）
+         * @return 以十六进制时间戳开头的盐值字符串
+         */
         static std::string generateTimestamped(size_t length = 32);
 
-        // Validate salt format
+        /**
+         * @brief 验证是否为有效的十六进制字符串
+         * @param salt 待验证的字符串
+         * @return 是否为有效十六进制格式
+         */
         static bool isValidHex(const std::string& salt);
+
+        /**
+         * @brief 验证是否为有效的 Base64 字符串
+         * @param salt 待验证的字符串
+         * @return 是否为有效 Base64 格式
+         */
         static bool isValidBase64(const std::string& salt);
 
     private:

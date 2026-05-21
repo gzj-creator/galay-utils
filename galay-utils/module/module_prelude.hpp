@@ -1,7 +1,14 @@
+/**
+ * @file module_prelude.hpp
+ * @brief C++23 模块构建预编译头文件
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 用于 C++23 模块过渡构建，将第三方和系统头文件放入全局模块片段，
+ *          避免将它们附加到命名模块的管辖范围。支持 Clang/GCC/MSVC 编译器。
+ */
+
 #pragma once
-// Auto prelude for transitional C++23 module builds on Clang/GCC/MSVC.
-// Keep third-party/system headers in global module fragment to avoid attaching
-// them to the named module purview.
 
 #if __has_include(<algorithm>)
 #include <algorithm>

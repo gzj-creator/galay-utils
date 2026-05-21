@@ -1,3 +1,13 @@
+/**
+ * @file process.hpp
+ * @brief 进程管理工具
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供跨平台的进程管理功能，包括进程 ID 获取、子进程创建、
+ *          进程等待、命令执行、守护进程化等。支持 Windows 和 POSIX 平台。
+ */
+
 #ifndef GALAY_UTILS_PROCESS_HPP
 #define GALAY_UTILS_PROCESS_HPP
 
@@ -23,21 +33,36 @@
 namespace galay::utils {
 
 #if defined(_WIN32)
-using ProcessId = DWORD;
+using ProcessId = DWORD; ///< Windows 进程 ID 类型
 #else
-using ProcessId = pid_t;
+using ProcessId = pid_t; ///< POSIX 进程 ID 类型
 #endif
 
+/**
+ * @brief 进程退出状态
+ */
 struct ExitStatus {
-    int code;
-    bool signaled;
-    int signal;
+    int code; ///< 退出码
+    bool signaled; ///< 是否被信号终止
+    int signal; ///< 终止信号编号
 
+    /**
+     * @brief 判断是否成功退出
+     * @return 未被信号终止且退出码为 0 返回 true
+     */
     bool success() const { return !signaled && code == 0; }
 };
 
+/**
+ * @brief 进程管理工具类
+ * @details 提供跨平台的进程 ID 获取、子进程创建、进程等待、命令执行和守护进程化等静态方法。
+ */
 class Process {
 public:
+    /**
+     * @brief 获取当前进程 ID
+     * @return 当前进程 ID
+     */
     static ProcessId currentId() {
 #if defined(_WIN32)
         return GetCurrentProcessId();
@@ -46,6 +71,10 @@ public:
 #endif
     }
 
+    /**
+     * @brief 获取父进程 ID
+     * @return 父进程 ID
+     */
     static ProcessId parentId() {
 #if defined(_WIN32)
         HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -74,6 +103,12 @@ public:
 #endif
     }
 
+    /**
+     * @brief 等待指定进程结束
+     * @param pid 目标进程 ID
+     * @param options 等待选项（WNOHANG 等）
+     * @return 退出状态，失败返回 std::nullopt
+     */
     static std::optional<ExitStatus> wait(ProcessId pid, int options = 0) {
 #if defined(_WIN32)
         HANDLE hProcess = OpenProcess(SYNCHRONIZE | PROCESS_QUERY_INFORMATION, FALSE, pid);
@@ -113,6 +148,12 @@ public:
 #endif
     }
 
+    /**
+     * @brief 创建子进程执行指定程序
+     * @param path 可执行文件路径
+     * @param args 命令行参数列表
+     * @return 子进程 ID，失败返回 -1
+     */
     static ProcessId spawn(const std::string& path, const std::vector<std::string>& args) {
 #if defined(_WIN32)
         std::string cmdLine = "\"" + path + "\"";
@@ -154,6 +195,11 @@ public:
 #endif
     }
 
+    /**
+     * @brief 执行 shell 命令并等待完成
+     * @param command shell 命令字符串
+     * @return 退出状态
+     */
     static ExitStatus execute(const std::string& command) {
 #if defined(_WIN32)
         int result = std::system(command.c_str());
@@ -173,6 +219,11 @@ public:
 #endif
     }
 
+    /**
+     * @brief 执行 shell 命令并捕获标准输出
+     * @param command shell 命令字符串
+     * @return 退出状态和标准输出内容的键值对
+     */
     static std::pair<ExitStatus, std::string> executeWithOutput(const std::string& command) {
         std::string output;
         ExitStatus status{0, false, 0};
@@ -209,6 +260,12 @@ public:
         return {status, output};
     }
 
+    /**
+     * @brief 向进程发送信号
+     * @param pid 目标进程 ID
+     * @param signal 信号编号
+     * @return 成功返回 true
+     */
     static bool kill(ProcessId pid, int signal) {
 #if defined(_WIN32)
         HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
@@ -224,6 +281,11 @@ public:
 #endif
     }
 
+    /**
+     * @brief 检查进程是否正在运行
+     * @param pid 目标进程 ID
+     * @return 正在运行返回 true
+     */
     static bool isRunning(ProcessId pid) {
 #if defined(_WIN32)
         HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
@@ -241,6 +303,10 @@ public:
 #endif
     }
 
+    /**
+     * @brief 将当前进程转为守护进程（仅 POSIX）
+     * @return 成功返回 true
+     */
     static bool daemonize() {
 #if defined(_WIN32)
         return false;

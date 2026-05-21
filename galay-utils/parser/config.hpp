@@ -1,3 +1,13 @@
+/**
+ * @file config.hpp
+ * @brief 配置文件解析器
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 解析简单 .conf 格式的键值对配置文件，支持 [section] 分节、
+ *          # 和 ; 注释行，支持逗号分隔的数组值。
+ */
+
 #ifndef GALAY_UTILS_PARSER_CONFIG_HPP
 #define GALAY_UTILS_PARSER_CONFIG_HPP
 
@@ -8,11 +18,9 @@
 namespace galay::utils {
 
 /**
- * @brief Parser for simple `.conf` key-value files with optional sections.
- *
- * Lines use `key = value`; `[section]` prefixes following keys as
- * `section.key`. `#` and `;` begin full-line comments. Parsed values are stored
- * as strings, with matching single or double quotes removed.
+ * @brief 配置文件解析器
+ * @details 解析简单 .conf 格式的键值对文件。支持 [section] 分节，
+ *          # 和 ; 注释行，匹配的单双引号去除。
  */
 class ConfigParser : public ParserBase {
 public:
@@ -82,6 +90,11 @@ public:
         return keys;
     }
 
+    /**
+     * @brief 获取指定分节下的所有键名
+     * @param section 分节名称
+     * @return 键名列表
+     */
     std::vector<std::string> getKeysInSection(const std::string& section) const {
         std::vector<std::string> keys;
         std::string prefix = section + ".";
@@ -93,6 +106,11 @@ public:
         return keys;
     }
 
+    /**
+     * @brief 获取逗号分隔的数组值
+     * @param key 键名
+     * @return 字符串数组
+     */
     std::vector<std::string> getArray(const std::string& key) const {
         auto value = getValue(key);
         if (!value) {

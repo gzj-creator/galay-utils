@@ -1,3 +1,13 @@
+/**
+ * @file app.hpp
+ * @brief 命令行参数解析框架
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供命令行参数解析功能，支持长选项、短选项、子命令、
+ *          类型转换、默认值、必选参数和标志位等特性。
+ */
+
 #ifndef GALAY_UTILS_APP_HPP
 #define GALAY_UTILS_APP_HPP
 
@@ -15,10 +25,16 @@
 
 namespace galay::utils {
 
+/// 参数类型枚举
 enum class ArgType { Bool, Int, Float, Double, String };
 
+/**
+ * @brief 命令行参数值封装
+ * @details 支持多种类型的参数值存储和类型转换。
+ */
 class ArgValue {
 public:
+    /// 参数值类型
     using Value = std::variant<bool, int, float, double, std::string>;
 
     ArgValue() : m_value(false), m_set(false) {}
@@ -65,10 +81,19 @@ private:
     bool m_set;
 };
 
+/**
+ * @brief 命令行参数定义
+ * @details 支持链式调用配置参数属性，包括长名、短名、类型、默认值等。
+ */
 class Arg {
 public:
     Arg() = default;
 
+    /**
+     * @brief 构造参数定义
+     * @param longName 长选项名
+     * @param description 参数描述
+     */
     Arg(std::string longName, std::string description)
         : m_longName(std::move(longName))
         , m_description(std::move(description))
@@ -76,19 +101,19 @@ public:
         , m_required(false)
         , m_isFlag(false) {}
 
-    Arg& shortName(char c) { m_shortName = c; return *this; }
-    Arg& type(ArgType t) { m_type = t; return *this; }
-    Arg& required(bool r = true) { m_required = r; return *this; }
-    Arg& defaultValue(ArgValue::Value val) { m_default = ArgValue(std::move(val)); return *this; }
-    Arg& flag(bool f = true) { m_isFlag = f; m_type = ArgType::Bool; return *this; }
+    Arg& shortName(char c) { m_shortName = c; return *this; } ///< 设置短选项名
+    Arg& type(ArgType t) { m_type = t; return *this; } ///< 设置参数类型
+    Arg& required(bool r = true) { m_required = r; return *this; } ///< 设置为必选参数
+    Arg& defaultValue(ArgValue::Value val) { m_default = ArgValue(std::move(val)); return *this; } ///< 设置默认值
+    Arg& flag(bool f = true) { m_isFlag = f; m_type = ArgType::Bool; return *this; } ///< 设置为标志位
 
-    const std::string& longName() const { return m_longName; }
-    char shortName() const { return m_shortName; }
-    const std::string& description() const { return m_description; }
-    ArgType type() const { return m_type; }
-    bool isRequired() const { return m_required; }
-    bool isFlag() const { return m_isFlag; }
-    const ArgValue& defaultValue() const { return m_default; }
+    const std::string& longName() const { return m_longName; } ///< 获取长选项名
+    char shortName() const { return m_shortName; } ///< 获取短选项名
+    const std::string& description() const { return m_description; } ///< 获取描述
+    ArgType type() const { return m_type; } ///< 获取参数类型
+    bool isRequired() const { return m_required; } ///< 是否为必选参数
+    bool isFlag() const { return m_isFlag; } ///< 是否为标志位
+    const ArgValue& defaultValue() const { return m_default; } ///< 获取默认值
 
 private:
     std::string m_longName;
@@ -100,8 +125,13 @@ private:
     ArgValue m_default;
 };
 
+/**
+ * @brief 命令或子命令定义
+ * @details 支持添加参数、子命令和回调函数，构成命令树。
+ */
 class Cmd {
 public:
+    /// 命令回调函数类型
     using Callback = std::function<int(Cmd&)>;
 
     explicit Cmd(std::string name, std::string description = "")
@@ -333,11 +363,26 @@ protected:
     Cmd* m_activeSubcommand = nullptr;
 };
 
+/**
+ * @brief 顶层应用程序入口
+ * @details 继承自 Cmd，提供 run 方法作为程序主入口。
+ */
 class App : public Cmd {
 public:
+    /**
+     * @brief 构造应用程序
+     * @param name 应用程序名称
+     * @param description 应用程序描述
+     */
     explicit App(std::string name, std::string description = "")
         : Cmd(std::move(name), std::move(description)) {}
 
+    /**
+     * @brief 解析命令行参数并执行
+     * @param argc 参数个数
+     * @param argv 参数数组
+     * @return 执行返回值，解析失败返回 1
+     */
     int run(int argc, char* argv[]) {
         if (!parse(argc, argv)) {
             return 1;

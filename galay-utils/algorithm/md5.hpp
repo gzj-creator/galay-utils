@@ -1,3 +1,13 @@
+/**
+ * @file md5.hpp
+ * @brief MD5 哈希算法实现
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供 MD5 摘要计算功能，支持字符串和原始字节数据输入，
+ *          返回十六进制字符串或 16 字节原始哈希值。支持 C++17 的 string_view 接口。
+ */
+
 #ifndef GALAY_UTILS_MD5_H
 #define GALAY_UTILS_MD5_H
 
@@ -12,20 +22,56 @@
 
 namespace galay::utils
 {
+    /**
+     * @brief MD5 哈希工具类
+     * @details 提供 MD5 摘要计算，返回十六进制字符串或 16 字节原始哈希值。
+     */
     class MD5Util
     {
     public:
-        // Compute MD5 hash and return as hex string
+        /**
+         * @brief 计算字符串的 MD5 哈希值（十六进制格式）
+         * @param input 输入字符串
+         * @return 32 字符的十六进制 MD5 字符串
+         */
         static std::string MD5(const std::string& input);
+
+        /**
+         * @brief 计算原始字节的 MD5 哈希值（十六进制格式）
+         * @param data 输入数据指针
+         * @param length 数据长度
+         * @return 32 字符的十六进制 MD5 字符串
+         */
         static std::string MD5(const unsigned char* data, size_t length);
 
-        // Compute MD5 hash and return as raw bytes
+        /**
+         * @brief 计算字符串的 MD5 哈希值（原始字节）
+         * @param input 输入字符串
+         * @return 16 字节的 MD5 哈希数组
+         */
         static std::array<uint8_t, 16> MD5Raw(const std::string& input);
+
+        /**
+         * @brief 计算原始字节的 MD5 哈希值（原始字节）
+         * @param data 输入数据指针
+         * @param length 数据长度
+         * @return 16 字节的 MD5 哈希数组
+         */
         static std::array<uint8_t, 16> MD5Raw(const unsigned char* data, size_t length);
 
 #if __cplusplus >= 201703L
-        // String view versions
+        /**
+         * @brief 计算字符串视图的 MD5 哈希值（十六进制格式，C++17）
+         * @param input 输入字符串视图
+         * @return 32 字符的十六进制 MD5 字符串
+         */
         static std::string MD5View(std::string_view input);
+
+        /**
+         * @brief 计算字符串视图的 MD5 哈希值（原始字节，C++17）
+         * @param input 输入字符串视图
+         * @return 16 字节的 MD5 哈希数组
+         */
         static std::array<uint8_t, 16> MD5RawView(std::string_view input);
 #endif
 

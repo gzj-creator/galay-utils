@@ -1,3 +1,13 @@
+/**
+ * @file hmac.hpp
+ * @brief SHA-256 和 HMAC-SHA256 算法实现
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供 SHA-256 哈希计算和基于 SHA-256 的 HMAC 消息认证码生成功能。
+ *          纯头文件实现，不依赖外部加密库。
+ */
+
 #ifndef GALAY_UTILS_HMAC_H
 #define GALAY_UTILS_HMAC_H
 
@@ -8,12 +18,34 @@
 
 namespace galay::utils
 {
-    // SHA-256 implementation
+    /**
+     * @brief SHA-256 哈希算法实现
+     * @details 提供 SHA-256 哈希计算，返回原始字节数组或十六进制字符串。
+     */
     class SHA256
     {
     public:
+        /**
+         * @brief 计算 SHA-256 哈希值
+         * @param data 输入数据指针
+         * @param length 数据长度
+         * @return 32 字节的哈希值数组
+         */
         static std::array<uint8_t, 32> hash(const uint8_t* data, size_t length);
+
+        /**
+         * @brief 计算并返回十六进制格式的 SHA-256 哈希值
+         * @param data 输入数据指针
+         * @param length 数据长度
+         * @return 64 字符的十六进制哈希字符串
+         */
         static std::string hashHex(const uint8_t* data, size_t length);
+
+        /**
+         * @brief 计算并返回十六进制格式的 SHA-256 哈希值
+         * @param data 输入字符串
+         * @return 64 字符的十六进制哈希字符串
+         */
         static std::string hashHex(const std::string& data);
 
     private:
@@ -39,15 +71,38 @@ namespace galay::utils
         static void transform(uint32_t state[8], const uint8_t block[64]);
     };
 
-    // HMAC-SHA256 implementation
+    /**
+     * @brief HMAC-SHA256 消息认证码实现
+     * @details 提供基于 SHA-256 的 HMAC 计算，用于消息完整性和认证。
+     */
     class HMAC
     {
     public:
+        /**
+         * @brief 计算 HMAC-SHA256
+         * @param key 密钥指针
+         * @param keyLen 密钥长度
+         * @param data 数据指针
+         * @param dataLen 数据长度
+         * @return 32 字节的 HMAC 值数组
+         */
         static std::array<uint8_t, 32> hmacSha256(const uint8_t* key, size_t keyLen,
                                                    const uint8_t* data, size_t dataLen);
 
+        /**
+         * @brief 计算并返回十六进制格式的 HMAC-SHA256
+         * @param key 密钥字符串
+         * @param data 数据字符串
+         * @return 64 字符的十六进制 HMAC 字符串
+         */
         static std::string hmacSha256Hex(const std::string& key, const std::string& data);
 
+        /**
+         * @brief 计算 HMAC-SHA256
+         * @param key 密钥字符串
+         * @param data 数据字符串
+         * @return 32 字节的 HMAC 值数组
+         */
         static std::array<uint8_t, 32> hmacSha256(const std::string& key, const std::string& data);
     };
 

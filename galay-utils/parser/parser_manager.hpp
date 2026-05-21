@@ -1,3 +1,13 @@
+/**
+ * @file parser_manager.hpp
+ * @brief 解析器工厂和管理器
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 根据文件扩展名自动创建对应的解析器实例，
+ *          默认注册 .conf、.ini、.env、.toml 四种解析器。
+ */
+
 #ifndef GALAY_UTILS_PARSER_MANAGER_HPP
 #define GALAY_UTILS_PARSER_MANAGER_HPP
 
@@ -12,35 +22,36 @@
 namespace galay::utils {
 
 /**
- * @brief Registry and factory for all parser types.
- *
- * The manager maps file extensions to parser factories. It registers `.conf`,
- * `.ini`, `.env`, and `.toml` by default. The singleton registry is initialized
- * on first use; concurrent mutation through registerParser() must be externally
- * synchronized by callers.
+ * @brief 解析器注册表和工厂
+ * @details 单例模式，根据文件扩展名自动创建对应的解析器。
+ *          默认注册 .conf、.ini、.env、.toml 四种解析器。
  */
 class ParserManager {
 public:
-    using Creator = std::function<std::unique_ptr<ParserBase>()>;
+    using Creator = std::function<std::unique_ptr<ParserBase>()>; ///< 解析器工厂函数类型
 
+    /**
+     * @brief 获取单例实例
+     * @return 解析器管理器实例引用
+     */
     static ParserManager& instance() {
         static ParserManager instance;
         return instance;
     }
 
     /**
-     * @brief Register or replace a parser factory for an extension.
-     * @param extension Extension including the leading dot, such as `.toml`.
-     * @param creator Factory that returns a new parser instance.
+     * @brief 注册或替换指定扩展名的解析器工厂
+     * @param extension 文件扩展名（含前导点，如 `.toml`）
+     * @param creator 解析器工厂函数
      */
     void registerParser(const std::string& extension, Creator creator) {
         m_creators[extension] = std::move(creator);
     }
 
     /**
-     * @brief Create a parser based on the extension of a path.
-     * @param path File path or file name.
-     * @return Parser instance, or nullptr when the extension is unknown.
+     * @brief 根据文件路径的扩展名创建解析器
+     * @param path 文件路径或文件名
+     * @return 解析器实例，未知扩展名返回 nullptr
      */
     std::unique_ptr<ParserBase> createParser(const std::string& path) {
         auto dot_pos = path.rfind('.');

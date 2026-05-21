@@ -1,3 +1,13 @@
+/**
+ * @file base64.hpp
+ * @brief Base64 编解码工具
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供 Base64 编码和解码功能，支持标准 Base64 和 URL 安全 Base64 变体，
+ *          以及 PEM 和 MIME 格式的编码。支持 C++17 的 string_view 接口。
+ */
+
 #ifndef GALAY_UTILS_BASE64_H
 #define GALAY_UTILS_BASE64_H
 
@@ -11,6 +21,7 @@
 
 namespace galay::utils
 {
+    /// 标准 Base64 和 URL 安全 Base64 字符集
     inline constexpr const char *base64_chars[2] = {
         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         "abcdefghijklmnopqrstuvwxyz"
@@ -22,8 +33,7 @@ namespace galay::utils
         "0123456789"
         "-_"};
 
-    // Lookup table for decoding - maps ASCII values to base64 values
-    // Invalid characters are marked as 0xFF
+    /// 解码查找表，将 ASCII 值映射到 Base64 值，无效字符标记为 0xFF
     inline constexpr unsigned char decode_table[256] = {
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -43,21 +53,82 @@ namespace galay::utils
         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
     };
 
+    /**
+     * @brief Base64 编解码工具类
+     * @details 提供 Base64 编码和解码的静态方法，支持标准 Base64、URL 安全变体、
+     *          PEM（64 字符换行）和 MIME（76 字符换行）格式。
+     */
     class Base64Util
     {
     public:
+        /**
+         * @brief 对字符串进行 Base64 编码
+         * @param s 待编码的字符串
+         * @param url 是否使用 URL 安全字符集（- 和 _ 替换 + 和 /）
+         * @return Base64 编码后的字符串
+         */
         static std::string Base64Encode(std::string const &s, bool url = false);
+
+        /**
+         * @brief 以 PEM 格式编码（64 字符换行）
+         * @param s 待编码的字符串
+         * @return PEM 格式的 Base64 编码字符串
+         */
         static std::string Base64EncodePem(std::string const &s);
+
+        /**
+         * @brief 以 MIME 格式编码（76 字符换行）
+         * @param s 待编码的字符串
+         * @return MIME 格式的 Base64 编码字符串
+         */
         static std::string Base64EncodeMime(std::string const &s);
 
+        /**
+         * @brief 对 Base64 字符串进行解码
+         * @param s 待解码的 Base64 字符串
+         * @param remove_linebreaks 是否在解码前移除换行符
+         * @return 解码后的字符串
+         */
         static std::string Base64Decode(std::string const &s, bool remove_linebreaks = false);
+
+        /**
+         * @brief 对原始字节进行 Base64 编码
+         * @param bytes_to_encode 待编码的字节数组指针
+         * @param len 字节长度
+         * @param url 是否使用 URL 安全字符集
+         * @return Base64 编码后的字符串
+         */
         static std::string Base64Encode(unsigned char const *, size_t len, bool url = false);
 
 #if __cplusplus >= 201703L
-        // String view versions with explicit naming to avoid ambiguity
+        /**
+         * @brief 对 string_view 进行 Base64 编码（C++17）
+         * @param s 待编码的字符串视图
+         * @param url 是否使用 URL 安全字符集
+         * @return Base64 编码后的字符串
+         */
         static std::string Base64EncodeView(std::string_view s, bool url = false);
+
+        /**
+         * @brief 以 PEM 格式编码 string_view（C++17）
+         * @param s 待编码的字符串视图
+         * @return PEM 格式的 Base64 编码字符串
+         */
         static std::string Base64EncodePemView(std::string_view s);
+
+        /**
+         * @brief 以 MIME 格式编码 string_view（C++17）
+         * @param s 待编码的字符串视图
+         * @return MIME 格式的 Base64 编码字符串
+         */
         static std::string Base64EncodeMimeView(std::string_view s);
+
+        /**
+         * @brief 对 string_view 进行 Base64 解码（C++17）
+         * @param s 待解码的 Base64 字符串视图
+         * @param remove_linebreaks 是否在解码前移除换行符
+         * @return 解码后的字符串
+         */
         static std::string Base64DecodeView(std::string_view s, bool remove_linebreaks = false);
 #endif
     private:

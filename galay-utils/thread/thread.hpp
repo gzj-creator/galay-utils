@@ -16,7 +16,18 @@
 namespace galay::utils {
 
 /**
- * @brief High-performance thread pool
+ * @file thread.hpp
+ * @brief 线程池和线程安全容器
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供高性能线程池（ThreadPool）、任务等待器（TaskWaiter）、
+ *          线程安全双向链表（ThreadSafeList）等并发工具。
+ */
+
+/**
+ * @brief 高性能线程池
+ * @details 支持任务提交、带返回值的异步任务、优雅停止和任务等待。
  */
 class ThreadPool {
 public:
@@ -41,6 +52,14 @@ public:
     ThreadPool(const ThreadPool&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;
 
+    /**
+     * @brief 提交带返回值的异步任务
+     * @tparam F 函数类型
+     * @tparam Args 参数类型
+     * @param f 待执行的函数
+     * @param args 函数参数
+     * @return 包含返回值的 future 对象
+     */
     template<typename F, typename... Args>
     auto addTask(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>> {
         using ReturnType = std::invoke_result_t<F, Args...>;
@@ -63,6 +82,11 @@ public:
         return result;
     }
 
+    /**
+     * @brief 执行无返回值的异步任务
+     * @tparam F 函数类型
+     * @param f 待执行的函数
+     */
     template<typename F>
     void execute(F&& f) {
         {
@@ -75,14 +99,18 @@ public:
         m_cv.notify_one();
     }
 
-    size_t threadCount() const { return m_workers.size(); }
+    size_t threadCount() const { return m_workers.size(); } ///< 获取线程数量
 
+    /**
+     * @brief 获取待处理任务数量
+     * @return 待处理任务数量
+     */
     size_t pendingTasks() const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_tasks.size();
     }
 
-    bool isStopped() const { return m_stopped; }
+    bool isStopped() const { return m_stopped; } ///< 判断线程池是否已停止
 
     /**
      * @brief 阻塞等待所有任务完成
@@ -95,6 +123,9 @@ public:
         });
     }
 
+    /**
+     * @brief 优雅停止线程池（等待所有任务完成后停止）
+     */
     void stop() {
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -113,6 +144,9 @@ public:
         }
     }
 
+    /**
+     * @brief 立即停止线程池（丢弃所有未完成任务）
+     */
     void stopNow() {
         {
             std::lock_guard<std::mutex> lock(m_mutex);
@@ -170,12 +204,19 @@ private:
 };
 
 /**
- * @brief Task waiter for waiting on multiple tasks
+ * @brief 任务等待器
+ * @details 用于等待线程池中的多个任务完成。
  */
 class TaskWaiter {
 public:
     TaskWaiter() : m_count(0) {}
 
+    /**
+     * @brief 向线程池添加任务并跟踪计数
+     * @tparam F 函数类型
+     * @param pool 线程池引用
+     * @param f 待执行的任务
+     */
     template<typename F>
     void addTask(ThreadPool& pool, F&& f) {
         ++m_count;
@@ -216,7 +257,8 @@ private:
 };
 
 /**
- * @brief Thread-safe doubly linked list node
+ * @brief 线程安全双向链表节点
+ * @tparam T 数据类型
  */
 template<typename T>
 struct ListNode {
@@ -228,7 +270,9 @@ struct ListNode {
 };
 
 /**
- * @brief Thread-safe doubly linked list
+ * @brief 线程安全双向链表
+ * @details 使用互斥锁保护所有操作，支持头尾插入、删除和清空。
+ * @tparam T 数据类型
  */
 template<typename T>
 class ThreadSafeList {
@@ -244,6 +288,11 @@ public:
     ThreadSafeList(const ThreadSafeList&) = delete;
     ThreadSafeList& operator=(const ThreadSafeList&) = delete;
 
+    /**
+     * @brief 在链表头部插入元素
+     * @param value 插入的值
+     * @return 新节点指针
+     */
     Node* pushFront(T value) {
         auto node = new Node(std::move(value));
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -261,6 +310,11 @@ public:
         return node;
     }
 
+    /**
+     * @brief 在链表尾部插入元素
+     * @param value 插入的值
+     * @return 新节点指针
+     */
     Node* pushBack(T value) {
         auto node = new Node(std::move(value));
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -278,6 +332,10 @@ public:
         return node;
     }
 
+    /**
+     * @brief 弹出链表头部元素
+     * @return 弹出的值，链表为空时返回 std::nullopt
+     */
     std::optional<T> popFront() {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -299,6 +357,10 @@ public:
         return value;
     }
 
+    /**
+     * @brief 弹出链表尾部元素
+     * @return 弹出的值，链表为空时返回 std::nullopt
+     */
     std::optional<T> popBack() {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -320,6 +382,10 @@ public:
         return value;
     }
 
+    /**
+     * @brief 移除指定节点
+     * @param node 目标节点指针
+     */
     void remove(Node* node) {
         if (!node) return;
 
@@ -341,16 +407,27 @@ public:
         delete node;
     }
 
+    /**
+     * @brief 获取链表大小
+     * @return 元素数量
+     */
     size_t size() const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_size;
     }
 
+    /**
+     * @brief 判断链表是否为空
+     * @return 为空返回 true
+     */
     bool empty() const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_size == 0;
     }
 
+    /**
+     * @brief 清空链表
+     */
     void clear() {
         std::lock_guard<std::mutex> lock(m_mutex);
         while (m_head) {

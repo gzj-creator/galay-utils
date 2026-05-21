@@ -1,3 +1,13 @@
+/**
+ * @file trace.hpp
+ * @brief 堆栈跟踪工具
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供堆栈跟踪获取、打印和崩溃信号处理功能，
+ *          支持 macOS 和 Linux 平台的符号反解。
+ */
+
 #ifndef GALAY_UTILS_BACKTRACE_HPP
 #define GALAY_UTILS_BACKTRACE_HPP
 
@@ -18,10 +28,18 @@
 namespace galay::utils {
 
 /**
- * @brief Stack trace utility for debugging
+ * @brief 堆栈跟踪工具类
+ * @details 提供堆栈跟踪获取、打印和崩溃信号处理功能。
  */
 class BackTrace {
 public:
+    /**
+     * @brief 获取当前调用堆栈
+     * @param maxFrames 最大栈帧数（默认 64）
+     * @param skipFrames 跳过的栈帧数（默认 1）
+     * @return 堆栈字符串向量
+     */
+    static std::vector<std::string> getStackTrace(int maxFrames = 64, int skipFrames = 1) {
     static std::vector<std::string> getStackTrace(int maxFrames = 64, int skipFrames = 1) {
         std::vector<std::string> result;
 
@@ -72,6 +90,11 @@ public:
         return result;
     }
 
+    /**
+     * @brief 打印堆栈跟踪到标准错误流
+     * @param maxFrames 最大栈帧数（默认 64）
+     * @param skipFrames 跳过的栈帧数（默认 1）
+     */
     static void printStackTrace(int maxFrames = 64, int skipFrames = 1) {
         auto frames = getStackTrace(maxFrames, skipFrames + 1);
 
@@ -81,6 +104,12 @@ public:
         }
     }
 
+    /**
+     * @brief 获取堆栈跟踪字符串
+     * @param maxFrames 最大栈帧数（默认 64）
+     * @param skipFrames 跳过的栈帧数（默认 1）
+     * @return 格式化的堆栈跟踪字符串
+     */
     static std::string getStackTraceString(int maxFrames = 64, int skipFrames = 1) {
         auto frames = getStackTrace(maxFrames, skipFrames + 1);
 
@@ -93,6 +122,9 @@ public:
         return oss.str();
     }
 
+    /**
+     * @brief 安装崩溃信号处理器（SIGSEGV、SIGABRT、SIGFPE、SIGILL、SIGBUS）
+     */
     static void installCrashHandlers() {
         std::signal(SIGSEGV, crashSignalHandler);
         std::signal(SIGABRT, crashSignalHandler);

@@ -1,11 +1,15 @@
-# CHANGELOG
+# Changelog
 
-维护说明：
-- 未打 tag 的改动先写入 `## [Unreleased]`。
-- 需要发版时，把 `Unreleased` 条目整理进新版本节，并补回空的 `Unreleased`。
-- 版本格式统一为 `vX.Y.Z`，日期使用 `YYYY-MM-DD`。
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+## [v2.1.2] - 2026-05-20
+
+### Docs
+- 为所有头文件添加中文 Doxygen 文档注释，包括文件级、类/结构体级、方法级注释以及成员变量行尾注释
 
 ## [v2.1.1] - 2026-05-18
 
@@ -14,43 +18,7 @@
 - Release 安装现在生成 `galayUtilsConfigTargets-release.cmake`，与新的驼峰导出文件命名保持一致。
 - 将 CMake project 版本提升到 `2.1.1`，对齐本次发布 tag。
 
-
 ## [v2.1.0] - 2026-04-29
 
-### Added
-- 新增 `IniParser` 与 `TomlParser`，并补充 `.toml` 扩展名解析注册能力。
-- 新增 parser 公共拆分头：`parser_base.hpp`、`detail.hpp`、`config.hpp`、`env.hpp`、`ini.hpp`、`toml.hpp`、`parser_manager.hpp`。
-
-### Changed
-- 将原 `parser.hpp` 调整为统一入口封装头，改为包含 `parser_manager.hpp`。
-- 更新聚合导出头与 C++ 模块入口中的 parser 引用路径，统一使用 `parser_manager.hpp`。
-- 同步更新 README 与 API/使用指南/示例/FAQ 文档中的 parser 类型与默认扩展名说明。
-- 移除 `RateLimiter` 的异步 `acquire()` / awaitable 路径，限流器仅保留同步非阻塞 `tryAcquire()` 接口。
-- 移除 `RateLimiter` 对 `galay-kernel` 与 `concurrentqueue/moodycamel` 的依赖，测试 target 不再查找或链接 `galay-kernel`。
-- 将限流器测试从协程调度路径调整为同步正确性测试与多线程 `tryAcquire()` 压测。
-
-### Fixed
-- 补充 parser 相关测试，覆盖 INI/TOML 正常路径与常见非法输入场景。
-- 补充限流器边界测试，覆盖令牌桶、滑动窗口、漏桶与计数信号量的超限、恢复和容量调整行为。
-
-### Release
-- 按功能变更发布要求提升版本到 `v2.1.0`。
-
-## [v2.0.0] - 2026-04-29
-
-### Changed
-- 统一源码、头文件、测试、示例与 benchmark 文件命名为 `lower_snake_case`，编号前缀同步使用 `t<number>_`、`e<number>_` 与 `b<number>_` 风格。
-- 同步更新构建脚本、模块入口、示例、测试、文档与脚本中的文件路径引用。
-- 将项目内头文件包含调整为基于公开 include 根或模块根的非相对路径。
-
-### Release
-- 按大版本发布要求提升版本到 `v2.0.0`。
-
-## [v1.2.1] - 2026-04-23
-
-### Fixed
-- 将 `CMakeLists.txt` 中的项目版本提升到 `1.2.1`，使源码声明与本次发布 tag 对齐。
-- 保留并发布 `galay-utils-config-version.cmake` 导出链路，修复下游带版本约束的 `find_package(galay-utils ... CONFIG)` 命中旧 tag 时的版本识别问题。
-
-### Added
-- 新增 `scripts/tests/test_cmake_packaging.sh`，回归验证安装后 `find_package(galay-utils <project-version> CONFIG)` 能正确通过版本匹配。
+### Note
+- Previous release. See git history for details.

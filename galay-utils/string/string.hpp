@@ -13,7 +13,18 @@
 namespace galay::utils {
 
 /**
- * @brief String utility class for common string operations
+ * @file string.hpp
+ * @brief 字符串工具类
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供常用的字符串操作，包括分割、连接、修剪、大小写转换、
+ *          前后缀检查、替换、十六进制转换、类型判断和格式化等。
+ */
+
+/**
+ * @brief 字符串工具类
+ * @details 提供静态方法进行常见字符串操作。
  */
 class StringUtils {
 public:

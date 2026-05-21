@@ -1,3 +1,13 @@
+/**
+ * @file limiter.hpp
+ * @brief 限流器集合
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供四种限流器实现：计数信号量、令牌桶、滑动窗口和漏桶。
+ *          所有限流器均为非阻塞 API，不适合在协程中直接使用。
+ */
+
 #ifndef GALAY_UTILS_RATE_LIMITER_HPP
 #define GALAY_UTILS_RATE_LIMITER_HPP
 
@@ -11,21 +21,14 @@
 namespace galay::utils {
 
 /**
- * @note Coroutine support is intentionally disabled for this module.
- *
- * Rate limiters only expose synchronous, non-blocking tryAcquire() APIs. The
- * previous coroutine acquire()/awaitable path was removed because it pulled in
- * galay-kernel and because some limiter implementations use mutex-protected
- * state. Do not call these types from a coroutine scheduler expecting suspend /
- * wake behavior; adapt retry, waiting, or timeout policy in the upper layer.
+ * @note 本模块不提供协程支持。限流器仅暴露同步非阻塞的 tryAcquire() API。
+ *       不要在期望挂起/唤醒行为的协程调度器中直接调用这些类型，
+ *       应在上层实现重试、等待或超时策略。
  */
 
 /**
- * @brief Lock-free counting semaphore with non-blocking acquisition.
- *
- * CountingSemaphore stores an atomic permit count. tryAcquire() never blocks
- * and returns false when there are not enough permits. release() increases the
- * available count. This type has no coroutine or scheduler dependency.
+ * @brief 无锁计数信号量（非阻塞获取）
+ * @details 使用原子计数器实现许可的获取和释放，不阻塞调用线程。
  */
 class CountingSemaphore {
 public:
@@ -33,9 +36,9 @@ public:
         : m_count(initial) {}
 
     /**
-     * @brief Try to acquire permits without blocking.
-     * @param count Number of permits requested.
-     * @return true when the permits were acquired; false otherwise.
+     * @brief 非阻塞尝试获取许可
+     * @param count 请求的许可数量
+     * @return 成功获取返回 true，否则返回 false
      */
     bool tryAcquire(size_t count = 1) {
         size_t current = m_count.load(std::memory_order_acquire);
@@ -49,16 +52,16 @@ public:
     }
 
     /**
-     * @brief Release permits back to the semaphore.
-     * @param count Number of permits to release.
+     * @brief 释放许可
+     * @param count 释放的许可数量
      */
     void release(size_t count = 1) {
         m_count.fetch_add(count, std::memory_order_release);
     }
 
     /**
-     * @brief Return the current number of available permits.
-     * @return Current permit count.
+     * @brief 获取当前可用许可数量
+     * @return 当前许可数量
      */
     size_t available() const {
         return m_count.load(std::memory_order_acquire);
@@ -69,11 +72,8 @@ private:
 };
 
 /**
- * @brief Non-blocking token bucket rate limiter.
- *
- * The bucket refills according to a token-per-second rate up to capacity.
- * tryAcquire() consumes tokens when enough are available and returns false
- * otherwise. This type is thread-safe and does not block callers.
+ * @brief 非阻塞令牌桶限流器
+ * @details 按令牌/秒速率填充令牌，直到容量上限。线程安全，不阻塞调用者。
  */
 class TokenBucketLimiter {
 public:
@@ -84,9 +84,9 @@ public:
         , m_last_refill_time(nowTicks()) {}
 
     /**
-     * @brief Try to consume tokens without blocking.
-     * @param tokens Number of tokens requested.
-     * @return true when enough tokens were available; false otherwise.
+     * @brief 非阻塞尝试消费令牌
+     * @param tokens 请求的令牌数量
+     * @return 令牌充足返回 true，否则返回 false
      */
     bool tryAcquire(size_t tokens = 1) {
         refill();
@@ -104,16 +104,16 @@ public:
     }
 
     /**
-     * @brief Return currently available tokens.
-     * @return Token count as a floating-point value.
+     * @brief 获取当前可用令牌数
+     * @return 令牌数量（浮点值）
      */
     double availableTokens() const {
         return static_cast<double>(m_tokens.load(std::memory_order_acquire)) / kPrecision;
     }
 
     /**
-     * @brief Update token refill rate.
-     * @param rate Tokens added per second.
+     * @brief 设置令牌填充速率
+     * @param rate 每秒填充的令牌数
      */
     void setRate(double rate) {
         refill();
@@ -121,8 +121,8 @@ public:
     }
 
     /**
-     * @brief Update bucket capacity and clamp current tokens if needed.
-     * @param capacity Maximum token count.
+     * @brief 设置桶容量并裁剪当前令牌数
+     * @param capacity 最大令牌数量
      */
     void setCapacity(size_t capacity) {
         m_capacity = capacity;
@@ -137,14 +137,14 @@ public:
     }
 
     /**
-     * @brief Return configured refill rate.
-     * @return Tokens per second.
+     * @brief 获取配置的填充速率
+     * @return 每秒令牌数
      */
     double rate() const { return m_rate; }
 
     /**
-     * @brief Return configured bucket capacity.
-     * @return Maximum token count.
+     * @brief 获取配置的桶容量
+     * @return 最大令牌数量
      */
     size_t capacity() const { return m_capacity; }
 
@@ -188,12 +188,9 @@ private:
 };
 
 /**
- * @brief Thread-safe sliding-window limiter.
- *
- * Each successful acquisition records a timestamp. Calls beyond maxRequests
- * inside the active window return false. Old timestamps are removed during
- * tryAcquire(). This type uses an internal mutex to protect the request window,
- * so it is intentionally not exposed as a coroutine awaitable.
+ * @brief 线程安全滑动窗口限流器
+ * @details 每次成功获取记录时间戳，超过窗口内最大请求数时返回 false。
+ *          使用内部互斥锁保护请求窗口，不适合作为协程等待对象。
  */
 class SlidingWindowLimiter {
 public:
@@ -202,8 +199,8 @@ public:
         , m_window_size(windowSize) {}
 
     /**
-     * @brief Try to record one request in the current window.
-     * @return true when the request is allowed; false when rate limited.
+     * @brief 非阻塞尝试记录一次请求
+     * @return 允许请求返回 true，被限流返回 false
      */
     bool tryAcquire() {
         auto now = std::chrono::steady_clock::now();
@@ -222,14 +219,14 @@ public:
     }
 
     /**
-     * @brief Return configured request limit.
-     * @return Maximum requests in the window.
+     * @brief 获取配置的请求限制
+     * @return 窗口内最大请求数
      */
     size_t maxRequests() const { return m_max_requests; }
 
     /**
-     * @brief Return configured window size.
-     * @return Sliding window duration.
+     * @brief 获取配置的窗口大小
+     * @return 滑动窗口时长
      */
     std::chrono::milliseconds windowSize() const { return m_window_size; }
 
@@ -241,10 +238,8 @@ private:
 };
 
 /**
- * @brief Non-blocking leaky bucket limiter.
- *
- * The bucket leaks at a configured rate and accepts new water only when the
- * capacity would not be exceeded. tryAcquire() is thread-safe and non-blocking.
+ * @brief 非阻塞漏桶限流器
+ * @details 桶按配置速率漏水，仅在不超过容量时接受新水。线程安全，不阻塞。
  */
 class LeakyBucketLimiter {
 public:
@@ -255,9 +250,9 @@ public:
         , m_last_leak_time(nowTicks()) {}
 
     /**
-     * @brief Try to add water to the bucket.
-     * @param amount Requested amount.
-     * @return true when capacity allows the amount; false otherwise.
+     * @brief 非阻塞尝试添加水量
+     * @param amount 请求的水量
+     * @return 容量允许返回 true，否则返回 false
      */
     bool tryAcquire(size_t amount = 1) {
         leak();
@@ -276,22 +271,22 @@ public:
     }
 
     /**
-     * @brief Return current bucket water amount.
-     * @return Water amount as floating-point value.
+     * @brief 获取当前桶内水量
+     * @return 水量（浮点值）
      */
     double currentWater() const {
         return static_cast<double>(m_water.load(std::memory_order_acquire)) / kPrecision;
     }
 
     /**
-     * @brief Return configured leak rate.
-     * @return Units leaked per second.
+     * @brief 获取配置的漏水速率
+     * @return 每秒漏水单位数
      */
     double rate() const { return m_rate; }
 
     /**
-     * @brief Return configured bucket capacity.
-     * @return Maximum water amount.
+     * @brief 获取配置的桶容量
+     * @return 最大水量
      */
     size_t capacity() const { return m_capacity; }
 

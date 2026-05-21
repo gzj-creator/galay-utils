@@ -1,3 +1,13 @@
+/**
+ * @file env.hpp
+ * @brief 环境变量文件解析器
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 解析 .env 格式文件，支持 KEY=VALUE 和 export KEY=VALUE 行，
+ *          # 注释和引号去除。
+ */
+
 #ifndef GALAY_UTILS_PARSER_ENV_HPP
 #define GALAY_UTILS_PARSER_ENV_HPP
 
@@ -8,11 +18,9 @@
 namespace galay::utils {
 
 /**
- * @brief Parser for `.env` files.
- *
- * Supports `KEY=VALUE` and optional `export KEY=VALUE` lines. Full-line `#`
- * comments and empty lines are skipped. Values enclosed in matching quotes are
- * unquoted before storage.
+ * @brief 环境变量文件解析器
+ * @details 解析 .env 格式文件，支持 KEY=VALUE 和 export KEY=VALUE 行，
+ *          # 注释和引号去除。
  */
 class EnvParser : public ParserBase {
 public:

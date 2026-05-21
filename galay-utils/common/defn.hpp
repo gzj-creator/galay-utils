@@ -1,3 +1,13 @@
+/**
+ * @file defn.hpp
+ * @brief 公共类型定义和平台检测宏
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 定义平台检测宏、架构检测宏、编译器检测宏、常用类型别名、
+ *          智能指针别名、不可拷贝/不可移动基类和单例基类等基础设施。
+ */
+
 #ifndef GALAY_UTILS_DEFN_HPP
 #define GALAY_UTILS_DEFN_HPP
 
@@ -8,7 +18,7 @@
 #include <string>
 #include <string_view>
 
-// Platform detection
+/// 平台检测宏
 #if defined(__APPLE__)
     #define GALAY_PLATFORM_MACOS 1
 #elif defined(__linux__)
@@ -17,7 +27,7 @@
     #define GALAY_PLATFORM_WINDOWS 1
 #endif
 
-// Architecture detection
+/// 架构检测宏
 #if defined(__x86_64__) || defined(_M_X64)
     #define GALAY_ARCH_X64 1
 #elif defined(__i386__) || defined(_M_IX86)
@@ -26,7 +36,7 @@
     #define GALAY_ARCH_ARM64 1
 #endif
 
-// Compiler detection
+/// 编译器检测宏
 #if defined(__clang__)
     #define GALAY_COMPILER_CLANG 1
 #elif defined(__GNUC__)
@@ -35,7 +45,7 @@
     #define GALAY_COMPILER_MSVC 1
 #endif
 
-// Likely/Unlikely hints
+/// 分支预测提示宏
 #if defined(GALAY_COMPILER_GCC) || defined(GALAY_COMPILER_CLANG)
     #define GALAY_LIKELY(x)   __builtin_expect(!!(x), 1)
     #define GALAY_UNLIKELY(x) __builtin_expect(!!(x), 0)
@@ -44,19 +54,19 @@
     #define GALAY_UNLIKELY(x) (x)
 #endif
 
-// Force inline
+/// 强制内联宏
 #if defined(GALAY_COMPILER_MSVC)
     #define GALAY_FORCE_INLINE __forceinline
 #else
     #define GALAY_FORCE_INLINE __attribute__((always_inline)) inline
 #endif
 
-// Unused variable
+/// 未使用变量消除宏
 #define GALAY_UNUSED(x) (void)(x)
 
 namespace galay::utils {
 
-// Common type aliases
+/// 通用类型别名
 using i8  = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
@@ -73,7 +83,7 @@ using f64 = double;
 using usize = size_t;
 using isize = ptrdiff_t;
 
-// Smart pointer aliases
+/// 智能指针别名
 template<typename T>
 using UniquePtr = std::unique_ptr<T>;
 
@@ -83,15 +93,19 @@ using SharedPtr = std::shared_ptr<T>;
 template<typename T>
 using WeakPtr = std::weak_ptr<T>;
 
-// Function alias
+/// 函数类型别名
 template<typename T>
 using Func = std::function<T>;
 
-// String aliases
+/// 字符串类型别名
 using String = std::string;
 using StringView = std::string_view;
 
-// Non-copyable base class
+/**
+ * @brief 不可拷贝基类
+ * @details 继承此类的对象不可被拷贝构造和拷贝赋值。
+ */
+class NonCopyable {
 class NonCopyable {
 protected:
     NonCopyable() = default;
@@ -101,7 +115,11 @@ protected:
     NonCopyable& operator=(const NonCopyable&) = delete;
 };
 
-// Non-movable base class
+/**
+ * @brief 不可移动基类
+ * @details 继承此类的对象不可被移动构造和移动赋值。
+ */
+class NonMovable {
 class NonMovable {
 protected:
     NonMovable() = default;
@@ -111,7 +129,19 @@ protected:
     NonMovable& operator=(NonMovable&&) = delete;
 };
 
-// Singleton base class
+/**
+ * @brief 单例基类
+ * @details 继承此类的对象将获得线程安全的单例模式。
+ * @tparam T 单例类型
+ */
+template<typename T>
+class Singleton : public NonCopyable, public NonMovable {
+public:
+    /**
+     * @brief 获取单例实例
+     * @return 单例的引用
+     */
+    static T& instance() {
 template<typename T>
 class Singleton : public NonCopyable, public NonMovable {
 public:

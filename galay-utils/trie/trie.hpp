@@ -1,3 +1,12 @@
+/**
+ * @file trie.hpp
+ * @brief 字典树（Trie）实现
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供字典树的插入、查找、前缀匹配、删除和词频统计功能。
+ */
+
 #ifndef GALAY_UTILS_TRIE_TREE_HPP
 #define GALAY_UTILS_TRIE_TREE_HPP
 
@@ -9,19 +18,31 @@
 
 namespace galay::utils {
 
+/**
+ * @brief 字典树节点
+ * @details 存储子节点映射、单词结束标记和词频计数。
+ */
 class TrieNode {
 public:
     TrieNode() : m_isEnd(false), m_count(0) {}
 
-    std::unordered_map<char, std::unique_ptr<TrieNode>> children;
-    bool m_isEnd;
-    int m_count;
+    std::unordered_map<char, std::unique_ptr<TrieNode>> children; ///< 子节点映射
+    bool m_isEnd; ///< 是否为单词结束节点
+    int m_count; ///< 经过此节点的单词计数
 };
 
+/**
+ * @brief 字典树（Trie）
+ * @details 支持单词插入、查找、前缀匹配、删除和词频统计。
+ */
 class TrieTree {
 public:
     TrieTree() : m_root(std::make_unique<TrieNode>()), m_size(0) {}
 
+    /**
+     * @brief 添加单词到字典树
+     * @param word 待添加的单词
+     */
     void add(const std::string& word) {
         if (word.empty()) return;
 
@@ -40,15 +61,30 @@ public:
         ++node->m_count;
     }
 
+    /**
+     * @brief 检查字典树是否包含指定单词
+     * @param word 目标单词
+     * @return 存在返回 true
+     */
     bool contains(const std::string& word) const {
         TrieNode* node = findNode(word);
         return node != nullptr && node->m_isEnd;
     }
 
+    /**
+     * @brief 检查是否存在以指定前缀开头的单词
+     * @param prefix 前缀字符串
+     * @return 存在返回 true
+     */
     bool startsWith(const std::string& prefix) const {
         return findNode(prefix) != nullptr;
     }
 
+    /**
+     * @brief 查询单词的出现次数
+     * @param word 目标单词
+     * @return 出现次数，不存在返回 0
+     */
     int query(const std::string& word) const {
         TrieNode* node = findNode(word);
         if (node && node->m_isEnd) {
@@ -57,6 +93,11 @@ public:
         return 0;
     }
 
+    /**
+     * @brief 从字典树中移除单词
+     * @param word 目标单词
+     * @return 移除成功返回 true
+     */
     bool remove(const std::string& word) {
         if (word.empty() || !contains(word)) {
             return false;
@@ -67,6 +108,11 @@ public:
         return true;
     }
 
+    /**
+     * @brief 获取以指定前缀开头的所有单词
+     * @param prefix 前缀字符串
+     * @return 匹配的单词列表
+     */
     std::vector<std::string> getWordsWithPrefix(const std::string& prefix) const {
         std::vector<std::string> result;
         TrieNode* node = findNode(prefix);
@@ -78,14 +124,18 @@ public:
         return result;
     }
 
+    /**
+     * @brief 获取字典树中的所有单词
+     * @return 所有单词列表
+     */
     std::vector<std::string> getAllWords() const {
         std::vector<std::string> result;
         collectWords(m_root.get(), "", result);
         return result;
     }
 
-    size_t size() const { return m_size; }
-    bool empty() const { return m_size == 0; }
+    size_t size() const { return m_size; } ///< 获取单词数量
+    bool empty() const { return m_size == 0; } ///< 判断字典树是否为空
 
     void clear() {
         m_root = std::make_unique<TrieNode>();

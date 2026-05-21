@@ -1,3 +1,13 @@
+/**
+ * @file hash.hpp
+ * @brief 一致性哈希实现
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供带虚拟节点的一致性哈希环，支持节点动态添加/移除、
+ *          健康检查、加权节点和多副本查询。使用读写锁保证线程安全。
+ */
+
 #ifndef GALAY_UTILS_CONSISTENT_HASH_HPP
 #define GALAY_UTILS_CONSISTENT_HASH_HPP
 
@@ -14,8 +24,19 @@
 
 namespace galay::utils {
 
+/**
+ * @brief MurmurHash3 内部哈希实现
+ * @details 用于一致性哈希环的哈希计算。
+ */
 class MurmurHash3 {
 public:
+    /**
+     * @brief 计算 32 位 MurmurHash3 哈希值
+     * @param key 输入数据指针
+     * @param len 数据长度
+     * @param seed 哈希种子值
+     * @return 32 位哈希值
+     */
     static uint32_t hash32(const void* key, size_t len, uint32_t seed = 0) {
         const uint8_t* data = static_cast<const uint8_t*>(key);
         const int nblocks = static_cast<int>(len / 4);
@@ -57,6 +78,12 @@ public:
         return h1;
     }
 
+    /**
+     * @brief 计算字符串的 32 位 MurmurHash3 哈希值
+     * @param key 输入字符串
+     * @param seed 哈希种子值
+     * @return 32 位哈希值
+     */
     static uint32_t hash32(const std::string& key, uint32_t seed = 0) {
         return hash32(key.data(), key.size(), seed);
     }
@@ -76,44 +103,71 @@ private:
     }
 };
 
+/**
+ * @brief 节点状态结构体
+ * @details 记录节点的健康状态、请求计数和失败计数，所有字段均为原子类型。
+ */
 struct NodeStatus {
-    std::atomic<bool> healthy{true};
-    std::atomic<uint64_t> requestCount{0};
-    std::atomic<uint64_t> failureCount{0};
+    std::atomic<bool> healthy{true}; ///< 是否健康
+    std::atomic<uint64_t> requestCount{0}; ///< 请求计数
+    std::atomic<uint64_t> failureCount{0}; ///< 失败计数
 
-    void recordRequest() { ++requestCount; }
-    void recordFailure() { ++failureCount; healthy = false; }
-    void markHealthy() { healthy = true; }
-    void reset() { requestCount = 0; failureCount = 0; healthy = true; }
+    void recordRequest() { ++requestCount; } ///< 记录一次请求
+    void recordFailure() { ++failureCount; healthy = false; } ///< 记录一次失败并标记为不健康
+    void markHealthy() { healthy = true; } ///< 标记为健康
+    void reset() { requestCount = 0; failureCount = 0; healthy = true; } ///< 重置所有计数器
 };
 
+/**
+ * @brief 节点配置结构体
+ * @details 定义一致性哈希节点的标识、端点和权重。
+ */
 struct NodeConfig {
-    std::string id;
-    std::string endpoint;
-    int weight = 1;
+    std::string id; ///< 节点标识
+    std::string endpoint; ///< 节点端点地址
+    int weight = 1; ///< 节点权重
 
     bool operator==(const NodeConfig& other) const {
         return id == other.id;
     }
 };
 
+/**
+ * @brief 物理节点结构体
+ * @details 包含节点配置和运行时状态。
+ */
 struct PhysicalNode {
-    NodeConfig config;
-    NodeStatus status;
+    NodeConfig config; ///< 节点配置
+    NodeStatus status; ///< 节点状态
 
     explicit PhysicalNode(NodeConfig cfg) : config(std::move(cfg)) {}
 };
 
+/**
+ * @brief 一致性哈希环
+ * @details 基于虚拟节点的一致性哈希实现，使用读写锁保证线程安全。
+ *          支持节点动态添加/移除、健康检查和多副本查询。
+ */
 class ConsistentHash {
 public:
+    /// 哈希函数类型
     using HashFunc = std::function<uint32_t(const std::string&)>;
 
+    /**
+     * @brief 构造一致性哈希环
+     * @param virtualNodes 每个物理节点对应的虚拟节点数量（默认 150）
+     * @param hashFunc 自定义哈希函数，为空时使用 MurmurHash3
+     */
     explicit ConsistentHash(size_t virtualNodes = 150,
                             HashFunc hashFunc = nullptr)
         : m_virtualNodes(virtualNodes)
         , m_hashFunc(hashFunc ? std::move(hashFunc) :
                      [](const std::string& key) { return MurmurHash3::hash32(key); }) {}
 
+    /**
+     * @brief 添加节点到哈希环
+     * @param config 节点配置
+     */
     void addNode(const NodeConfig& config) {
         std::unique_lock<std::shared_mutex> lock(m_mutex);
 
@@ -128,6 +182,10 @@ public:
         }
     }
 
+    /**
+     * @brief 从哈希环移除节点
+     * @param nodeId 节点标识
+     */
     void removeNode(const std::string& nodeId) {
         std::unique_lock<std::shared_mutex> lock(m_mutex);
 
@@ -148,6 +206,11 @@ public:
         m_nodes.erase(it);
     }
 
+    /**
+     * @brief 根据 key 获取对应的节点
+     * @param key 查找键
+     * @return 节点配置，环为空时返回 std::nullopt
+     */
     std::optional<NodeConfig> getNode(const std::string& key) const {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
 
@@ -166,6 +229,12 @@ public:
         return it->second->config;
     }
 
+    /**
+     * @brief 获取健康的节点（跳过不健康节点）
+     * @param key 查找键
+     * @param maxRetries 最大重试次数（默认 3）
+     * @return 健康的节点配置，未找到时返回 std::nullopt
+     */
     std::optional<NodeConfig> getHealthyNode(const std::string& key, size_t maxRetries = 3) const {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
 
@@ -192,6 +261,12 @@ public:
         return std::nullopt;
     }
 
+    /**
+     * @brief 获取多个不同的节点（用于多副本）
+     * @param key 查找键
+     * @param count 需要的节点数量
+     * @return 节点配置列表
+     */
     std::vector<NodeConfig> getNodes(const std::string& key, size_t count) const {
         std::shared_lock<std::shared_mutex> lock(m_mutex);
 

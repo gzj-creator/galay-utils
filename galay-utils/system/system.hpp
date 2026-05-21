@@ -34,7 +34,18 @@
 namespace galay::utils {
 
 /**
- * @brief System utility functions
+ * @file system.hpp
+ * @brief 系统工具类
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供跨平台的系统工具函数，包括时间获取、文件操作、
+ *          环境变量管理、网络地址解析和系统信息查询。
+ */
+
+/**
+ * @brief 系统工具类
+ * @details 提供时间、文件、环境变量、网络和系统信息等静态工具方法。
  */
 class System {
 public:
@@ -368,8 +379,14 @@ public:
         return std::string(ip);
     }
 
+    /// 地址类型枚举
     enum class AddressType { Invalid, IPv4, IPv6, Domain };
 
+    /**
+     * @brief 检查地址类型
+     * @param address 待检查的地址字符串
+     * @return 地址类型枚举值
+     */
     static AddressType checkAddressType(const std::string& address) {
         struct in_addr ipv4;
         struct in6_addr ipv6;

@@ -1,3 +1,13 @@
+/**
+ * @file type_name.hpp
+ * @brief 类型名称获取工具
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供编译期和运行时获取类型反解（demangled）名称的功能，
+ *          支持 GCC 和 Clang 的 abi::__cxa_demangle。
+ */
+
 #ifndef GALAY_UTILS_TYPENAME_HPP
 #define GALAY_UTILS_TYPENAME_HPP
 
@@ -12,7 +22,9 @@
 namespace galay::utils {
 
 /**
- * @brief Get demangled type name for a given type
+ * @brief 获取类型的反解名称
+ * @tparam T 目标类型
+ * @return 反解后的类型名称字符串
  */
 template<typename T>
 inline std::string getTypeName() {
@@ -32,7 +44,10 @@ inline std::string getTypeName() {
 }
 
 /**
- * @brief Get demangled type name for a given object
+ * @brief 获取对象的反解类型名称
+ * @tparam T 对象类型
+ * @param obj 目标对象
+ * @return 反解后的类型名称字符串
  */
 template<typename T>
 inline std::string getTypeName(const T& obj) {
@@ -52,7 +67,9 @@ inline std::string getTypeName(const T& obj) {
 }
 
 /**
- * @brief Demangle a symbol name
+ * @brief 反解符号名称
+ * @param mangledName 混淆的符号名称
+ * @return 反解后的符号名称字符串
  */
 inline std::string demangleSymbol(const char* mangledName) {
     if (!mangledName) {

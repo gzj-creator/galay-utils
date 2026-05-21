@@ -1,3 +1,13 @@
+/**
+ * @file murmur_hash3.hpp
+ * @brief MurmurHash3 哈希算法实现
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供 MurmurHash3 的 32 位和 128 位哈希计算功能，
+ *          支持字符串和原始数据输入，可选种子值。支持 C++17 的 string_view 接口。
+ */
+
 #ifndef GALAY_UTILS_MURMURHASH3_H
 #define GALAY_UTILS_MURMURHASH3_H
 
@@ -12,25 +22,88 @@
 
 namespace galay::utils
 {
+    /**
+     * @brief MurmurHash3 哈希工具类
+     * @details 提供 MurmurHash3 的 32 位和 128 位哈希计算，
+     *          支持原始数据和字符串输入，可选种子值。
+     */
     class MurmurHash3Util
     {
     public:
-        // 32-bit hash
+        /**
+         * @brief 计算 32 位 MurmurHash3 哈希值
+         * @param key 输入数据指针
+         * @param len 数据长度
+         * @param seed 哈希种子值
+         * @return 32 位哈希值
+         */
         static uint32_t Hash32(const void* key, size_t len, uint32_t seed = 0);
+
+        /**
+         * @brief 计算字符串的 32 位 MurmurHash3 哈希值
+         * @param str 输入字符串
+         * @param seed 哈希种子值
+         * @return 32 位哈希值
+         */
         static uint32_t Hash32(const std::string& str, uint32_t seed = 0);
 
-        // 128-bit hash for x64 (returns as hex string)
+        /**
+         * @brief 计算 128 位 MurmurHash3 哈希值（十六进制字符串）
+         * @param key 输入数据指针
+         * @param len 数据长度
+         * @param seed 哈希种子值
+         * @return 32 字符的十六进制哈希字符串
+         */
         static std::string Hash128(const void* key, size_t len, uint32_t seed = 0);
+
+        /**
+         * @brief 计算字符串的 128 位 MurmurHash3 哈希值（十六进制字符串）
+         * @param str 输入字符串
+         * @param seed 哈希种子值
+         * @return 32 字符的十六进制哈希字符串
+         */
         static std::string Hash128(const std::string& str, uint32_t seed = 0);
 
-        // 128-bit hash for x64 (returns as raw bytes)
+        /**
+         * @brief 计算 128 位 MurmurHash3 哈希值（原始字节）
+         * @param key 输入数据指针
+         * @param len 数据长度
+         * @param seed 哈希种子值
+         * @return 包含两个 64 位整数的数组
+         */
         static std::array<uint64_t, 2> Hash128Raw(const void* key, size_t len, uint32_t seed = 0);
+
+        /**
+         * @brief 计算字符串的 128 位 MurmurHash3 哈希值（原始字节）
+         * @param str 输入字符串
+         * @param seed 哈希种子值
+         * @return 包含两个 64 位整数的数组
+         */
         static std::array<uint64_t, 2> Hash128Raw(const std::string& str, uint32_t seed = 0);
 
 #if __cplusplus >= 201703L
-        // String view versions
+        /**
+         * @brief 计算字符串视图的 32 位哈希值（C++17）
+         * @param str 输入字符串视图
+         * @param seed 哈希种子值
+         * @return 32 位哈希值
+         */
         static uint32_t Hash32View(std::string_view str, uint32_t seed = 0);
+
+        /**
+         * @brief 计算字符串视图的 128 位哈希值（十六进制，C++17）
+         * @param str 输入字符串视图
+         * @param seed 哈希种子值
+         * @return 32 字符的十六进制哈希字符串
+         */
         static std::string Hash128View(std::string_view str, uint32_t seed = 0);
+
+        /**
+         * @brief 计算字符串视图的 128 位哈希值（原始字节，C++17）
+         * @param str 输入字符串视图
+         * @param seed 哈希种子值
+         * @return 包含两个 64 位整数的数组
+         */
         static std::array<uint64_t, 2> Hash128RawView(std::string_view str, uint32_t seed = 0);
 #endif
 

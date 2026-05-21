@@ -1,3 +1,14 @@
+/**
+ * @file toml.hpp
+ * @brief TOML 配置文件解析器
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 轻量级 TOML 解析器，支持键值对、[section] 头、点分键名、
+ *          字符串、布尔值、数字和单行数组。不实现 TOML 的数组表、
+ *          多行字符串、日期等高级特性。
+ */
+
 #ifndef GALAY_UTILS_PARSER_TOML_HPP
 #define GALAY_UTILS_PARSER_TOML_HPP
 
@@ -10,13 +21,9 @@
 namespace galay::utils {
 
 /**
- * @brief Lightweight TOML parser for common configuration files.
- *
- * Supports key-value pairs, `[section]` headers, dotted keys, strings, booleans,
- * numbers, and single-line arrays. Parsed values are normalized into strings;
- * arrays are stored as comma-separated normalized values and can be retrieved
- * with getArray(). This parser intentionally does not implement TOML tables of
- * arrays, multiline strings, dates, or full TOML validation.
+ * @brief 轻量级 TOML 配置文件解析器
+ * @details 支持键值对、[section] 头、点分键名、字符串、布尔值、数字和单行数组。
+ *          不支持 TOML 的数组表、多行字符串、日期等高级特性。
  */
 class TomlParser : public ParserBase {
 public:

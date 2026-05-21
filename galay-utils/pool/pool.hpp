@@ -1,3 +1,13 @@
+/**
+ * @file pool.hpp
+ * @brief 对象池实现
+ * @author galay-utils
+ * @version 1.0.0
+ *
+ * @details 提供泛型对象池（ObjectPool）和阻塞对象池（BlockingObjectPool），
+ *          支持 RAII 自动归还、自定义创建/销毁函数和容量限制。
+ */
+
 #ifndef GALAY_UTILS_POOL_HPP
 #define GALAY_UTILS_POOL_HPP
 
@@ -12,16 +22,21 @@
 namespace galay::utils {
 
 /**
- * @brief Base class for poolable objects
+ * @brief 可池化对象基类
  */
 class PoolableObject {
 public:
     virtual ~PoolableObject() = default;
+
+    /**
+     * @brief 重置对象状态，归还对象池时自动调用
+     */
     virtual void reset() {}
 };
 
 /**
- * @brief Concept for poolable objects
+ * @brief 可池化对象概念约束
+ * @tparam T 待检查的类型
  */
 template<typename T>
 concept IsPoolable = std::is_base_of_v<PoolableObject, T> || requires(T t) {
@@ -29,15 +44,24 @@ concept IsPoolable = std::is_base_of_v<PoolableObject, T> || requires(T t) {
 };
 
 /**
- * @brief Generic object pool with RAII support
+ * @brief 泛型对象池（RAII 支持）
+ * @details 提供对象的获取、归还、容量限制和收缩功能。支持自定义创建和销毁函数。
+ * @tparam T 池化对象类型
  */
 template<typename T>
 class ObjectPool {
 public:
-    using Ptr = std::unique_ptr<T, std::function<void(T*)>>;
-    using Creator = std::function<T*()>;
-    using Destroyer = std::function<void(T*)>;
+    using Ptr = std::unique_ptr<T, std::function<void(T*)>>; ///< RAII 智能指针类型
+    using Creator = std::function<T*()>; ///< 对象创建函数类型
+    using Destroyer = std::function<void(T*)>; ///< 对象销毁函数类型
 
+    /**
+     * @brief 构造对象池
+     * @param initialSize 初始预创建的对象数量
+     * @param maxSize 最大池容量（0 表示无限制）
+     * @param creator 自定义创建函数
+     * @param destroyer 自定义销毁函数
+     */
     explicit ObjectPool(size_t initialSize = 0,
                         size_t maxSize = 0,
                         Creator creator = nullptr,
@@ -92,6 +116,10 @@ public:
         });
     }
 
+    /**
+     * @brief 尝试获取对象（池为空时返回 nullptr）
+     * @return RAII 包装的对象指针，或 nullptr
+     */
     Ptr tryAcquire() {
         T* obj = nullptr;
 
@@ -118,20 +146,35 @@ public:
         });
     }
 
+    /**
+     * @brief 获取池中可用对象数量
+     * @return 可用对象数量
+     */
     size_t size() const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_pool.size();
     }
 
+    /**
+     * @brief 获取总共创建的对象数量
+     * @return 总创建数量
+     */
     size_t totalCreated() const {
         return m_totalCreated.load();
     }
 
+    /**
+     * @brief 判断池是否为空
+     * @return 为空返回 true
+     */
     bool empty() const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_pool.empty();
     }
 
+    /**
+     * @brief 清空对象池
+     */
     void clear() {
         std::lock_guard<std::mutex> lock(m_mutex);
         while (!m_pool.empty()) {
@@ -141,6 +184,10 @@ public:
         m_poolSize = 0;
     }
 
+    /**
+     * @brief 将池收缩到指定大小
+     * @param targetSize 目标大小
+     */
     void shrink(size_t targetSize) {
         std::lock_guard<std::mutex> lock(m_mutex);
         while (m_pool.size() > targetSize) {
@@ -172,14 +219,16 @@ private:
 };
 
 /**
- * @brief Thread-safe blocking object pool
+ * @brief 线程安全阻塞对象池
+ * @details 当池为空时，获取操作会阻塞直到有对象归还。不适合在协程中使用。
+ * @tparam T 池化对象类型
  */
 template<typename T>
 class BlockingObjectPool {
 public:
-    using Ptr = std::unique_ptr<T, std::function<void(T*)>>;
-    using Creator = std::function<T*()>;
-    using Destroyer = std::function<void(T*)>;
+    using Ptr = std::unique_ptr<T, std::function<void(T*)>>; ///< RAII 智能指针类型
+    using Creator = std::function<T*()>; ///< 对象创建函数类型
+    using Destroyer = std::function<void(T*)>; ///< 对象销毁函数类型
 
     explicit BlockingObjectPool(size_t poolSize,
                                 Creator creator = nullptr,
@@ -203,8 +252,9 @@ public:
     BlockingObjectPool& operator=(const BlockingObjectPool&) = delete;
 
     /**
-     * @brief 阻塞获取对象
+     * @brief 阻塞获取对象，池为空时等待
      * @warning 会阻塞当前线程，不要在协程中使用
+     * @return RAII 包装的对象指针
      */
     Ptr acquire() {
         std::unique_lock<std::mutex> lock(m_mutex);
@@ -230,6 +280,10 @@ public:
     /**
      * @brief 带超时的阻塞获取
      * @warning 会阻塞当前线程，不要在协程中使用
+     * @tparam Rep 时钟周期类型
+     * @tparam Period 时钟周期单位
+     * @param timeout 超时时间
+     * @return RAII 包装的对象指针，超时返回 nullptr
      */
     template<typename Rep, typename Period>
     Ptr tryAcquireFor(const std::chrono::duration<Rep, Period>& timeout) {
@@ -255,6 +309,10 @@ public:
         });
     }
 
+    /**
+     * @brief 获取可用对象数量
+     * @return 可用对象数量
+     */
     size_t available() const {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_pool.size();

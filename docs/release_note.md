@@ -1,26 +1,28 @@
-# Release Note
+# Release Notes
 
-按时间顺序追加版本记录，避免覆盖历史发布说明。
+## v2.1.2 - 2026-05-20
 
-## v1.2.1 - 2026-04-23
+- **版本级别**: patch
+- **Git 提交消息**: docs: 为所有头文件接口添加中文 Doxygen 文档注释
+- **Git Tag**: v2.1.2
 
-- 版本级别：小版本（patch）
-- Git 提交消息：`chore: 发布 v1.2.1`
-- Git Tag：`v1.2.1`
-- 自述摘要：
-  - 将源码中的项目版本提升到 `1.2.1`，使 `galay-utils` 的 CMake 版本元数据与本次发布 tag 保持一致。
-  - 延续 `galay-utils-config-version.cmake` 的生成与安装链路，修复下游执行带版本约束的 `find_package(galay-utils ... CONFIG)` 时命中旧 tag 后无法完成版本匹配的问题。
-  - 新增 `scripts/tests/test_cmake_packaging.sh`，回归验证安装后的版本化 CMake 包消费路径。
+### 变更摘要
 
-## v2.0.0 - 2026-04-29
+- 为项目所有头文件添加完整的中文 Doxygen 文档注释
+- 注释覆盖文件级（@file/@brief/@author/@version/@details）、类/结构体级（@brief/@details/@tparam/@note）、方法级（@brief/@param/@return）以及成员变量和枚举值的行尾 ///< 注释
+- 更新 CMakeLists.txt 版本号至 v2.1.2
 
-- 版本级别：大版本（major）
-- Git 提交消息：`refactor: 统一源码文件命名规范`
-- Git Tag：`v2.0.0`
-- 自述摘要：
-  - 将源码、头文件、测试、示例与 benchmark 文件统一重命名为 lower_snake_case，编号前缀同步改为小写下划线形式。
-  - 同步更新 CMake/Bazel 构建描述、模块入口、README/docs、脚本和所有项目内 include 路径引用。
-  - 移除项目内相对 include，统一使用基于公开 include 根或模块根的非相对路径。
+## v2.1.1 - 2026-05-18
+
+- **版本级别**: patch
+- **Git 提交消息**: chore: 统一 CMake 导出文件命名
+- **Git Tag**: v2.1.1
+
+### 变更摘要
+
+- 将安装导出的 CMake targets 文件改为 `galayUtilsConfigTargets.cmake`，同步 package config 的 include 路径
+- Release 安装现在生成 `galayUtilsConfigTargets-release.cmake`，与新的驼峰导出文件命名保持一致
+- 将 CMake project 版本提升到 `2.1.1`，对齐本次发布 tag
 
 ## v2.1.0 - 2026-04-29
 
@@ -32,14 +34,3 @@
   - 拆分 parser 模块头文件，保留 `parser.hpp` 兼容入口，并同步更新 umbrella header、C++ 模块入口与使用文档。
   - 移除 `RateLimiter` 的异步 `acquire()` / awaitable 路径，只保留同步非阻塞 `tryAcquire()` 接口。
   - 移除限流器对 `galay-kernel` 与 `concurrentqueue/moodycamel` 的依赖，测试构建不再查找或链接 `galay-kernel`。
-  - 补充 TOML 异常解析测试与限流器正确性/多线程压测，覆盖常见非法 TOML、容量超限、速率恢复和并发获取路径。
-
-## v2.1.1 - 2026-05-18
-
-- 版本级别：小版本（patch）
-- Git 提交消息：`chore: 统一 CMake 导出文件命名`
-- Git Tag：`v2.1.1`
-- 自述摘要：
-  - 将安装导出的 CMake targets 文件改为 `galayUtilsConfigTargets.cmake`，并同步 `galay-utils-config.cmake` 的 include 路径。
-  - Release 安装随主 targets 文件生成 `galayUtilsConfigTargets-release.cmake`，统一驼峰导出文件命名。
-  - 将 CMake project 版本提升到 `2.1.1`，确保源码版本元数据、tag 与发布记录一致。
