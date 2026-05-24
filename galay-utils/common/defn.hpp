@@ -106,7 +106,6 @@ using StringView = std::string_view;
  * @details 继承此类的对象不可被拷贝构造和拷贝赋值。
  */
 class NonCopyable {
-class NonCopyable {
 protected:
     NonCopyable() = default;
     ~NonCopyable() = default;
@@ -119,7 +118,6 @@ protected:
  * @brief 不可移动基类
  * @details 继承此类的对象不可被移动构造和移动赋值。
  */
-class NonMovable {
 class NonMovable {
 protected:
     NonMovable() = default;
@@ -141,10 +139,6 @@ public:
      * @brief 获取单例实例
      * @return 单例的引用
      */
-    static T& instance() {
-template<typename T>
-class Singleton : public NonCopyable, public NonMovable {
-public:
     static T& instance() {
         static T instance;
         return instance;

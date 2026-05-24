@@ -5,7 +5,7 @@
  * @version 1.0.0
  *
  * @details 轻量级 TOML 解析器，支持键值对、[section] 头、点分键名、
- *          字符串、布尔值、数字和单行数组。不实现 TOML 的数组表、
+ *          字符串、布尔值、数字和数组。不实现 TOML 的数组表、
  *          多行字符串、日期等高级特性。
  */
 
@@ -22,7 +22,7 @@ namespace galay::utils {
 
 /**
  * @brief 轻量级 TOML 配置文件解析器
- * @details 支持键值对、[section] 头、点分键名、字符串、布尔值、数字和单行数组。
+ * @details 支持键值对、[section] 头、点分键名、字符串、布尔值、数字和数组。
  *          不支持 TOML 的数组表、多行字符串、日期等高级特性。
  */
 class TomlParser : public ParserBase {
@@ -35,9 +35,15 @@ public:
 
     bool parseString(const std::string& content) override {
         m_values.clear();
+        m_arrays.clear();
         m_sections.clear();
         m_last_error.clear();
         std::string current_section;
+        std::string pending_array_key;
+        std::string pending_array_section;
+        std::string pending_array_value;
+        int pending_array_line = 0;
+        bool has_pending_array = false;
 
         std::istringstream input(content);
         std::string line;
@@ -45,7 +51,25 @@ public:
 
         while (std::getline(input, line)) {
             ++line_num;
-            line = parser_detail::stripInlineComment(line, '#');
+            line = stripTomlInlineComment(line);
+
+            if (has_pending_array) {
+                if (!line.empty()) {
+                    pending_array_value += " ";
+                    pending_array_value += line;
+                    if (hasClosedArrayValue(pending_array_value)) {
+                        if (!storeValue(pending_array_section, pending_array_key, pending_array_value, pending_array_line)) {
+                            return false;
+                        }
+                        has_pending_array = false;
+                        pending_array_key.clear();
+                        pending_array_section.clear();
+                        pending_array_value.clear();
+                        pending_array_line = 0;
+                    }
+                }
+                continue;
+            }
 
             if (line.empty()) {
                 continue;
@@ -80,11 +104,7 @@ public:
             }
 
             std::string key = parser_detail::trim(line.substr(0, equal_pos));
-            std::string value = normalizeValue(parser_detail::trim(line.substr(equal_pos + 1)), line_num);
-            if (!m_last_error.empty()) {
-                return false;
-            }
-
+            std::string raw_value = parser_detail::trim(line.substr(equal_pos + 1));
             if (key.empty()) {
                 m_last_error = "Empty TOML key at line " + std::to_string(line_num);
                 return false;
@@ -94,16 +114,23 @@ public:
                 return false;
             }
 
-            std::string full_key = current_section.empty() ? key : current_section + "." + key;
-            if (m_values.find(full_key) != m_values.end()) {
-                m_last_error = "Duplicate TOML key at line " + std::to_string(line_num) + ": " + full_key;
+            if (!raw_value.empty() && raw_value.front() == '[' && !hasClosedArrayValue(raw_value)) {
+                pending_array_key = key;
+                pending_array_section = current_section;
+                pending_array_value = raw_value;
+                pending_array_line = line_num;
+                has_pending_array = true;
+                continue;
+            }
+
+            if (!storeValue(current_section, key, raw_value, line_num)) {
                 return false;
             }
-            if (hasKeyConflict(full_key)) {
-                m_last_error = "TOML key conflicts with existing key at line " + std::to_string(line_num) + ": " + full_key;
-                return false;
-            }
-            m_values[full_key] = value;
+        }
+
+        if (has_pending_array) {
+            m_last_error = "Invalid TOML array at line " + std::to_string(pending_array_line);
+            return false;
         }
 
         return true;
@@ -131,6 +158,11 @@ public:
     }
 
     std::vector<std::string> getArray(const std::string& key) const {
+        auto array_iter = m_arrays.find(key);
+        if (array_iter != m_arrays.end()) {
+            return array_iter->second;
+        }
+
         auto value = getValue(key);
         if (!value) {
             return {};
@@ -139,7 +171,31 @@ public:
     }
 
 private:
-    std::string normalizeValue(const std::string& raw_value, int line_num) {
+    bool storeValue(const std::string& current_section, const std::string& key, const std::string& raw_value, int line_num) {
+        std::vector<std::string> array_items;
+        bool is_array = !raw_value.empty() && raw_value.front() == '[';
+        std::string value = normalizeValue(raw_value, line_num, is_array ? &array_items : nullptr);
+        if (!m_last_error.empty()) {
+            return false;
+        }
+
+        std::string full_key = current_section.empty() ? key : current_section + "." + key;
+        if (m_values.find(full_key) != m_values.end()) {
+            m_last_error = "Duplicate TOML key at line " + std::to_string(line_num) + ": " + full_key;
+            return false;
+        }
+        if (hasKeyConflict(full_key)) {
+            m_last_error = "TOML key conflicts with existing key at line " + std::to_string(line_num) + ": " + full_key;
+            return false;
+        }
+        m_values[full_key] = value;
+        if (is_array) {
+            m_arrays[full_key] = std::move(array_items);
+        }
+        return true;
+    }
+
+    std::string normalizeValue(const std::string& raw_value, int line_num, std::vector<std::string>* array_items) {
         if (raw_value.empty()) {
             m_last_error = "Empty TOML value at line " + std::to_string(line_num);
             return {};
@@ -152,13 +208,19 @@ private:
             }
             std::string array_body = raw_value.substr(1, raw_value.length() - 2);
             if (parser_detail::trim(array_body).empty()) {
+                if (array_items != nullptr) {
+                    array_items->clear();
+                }
                 return {};
             }
             if (hasNestedArray(array_body)) {
                 m_last_error = "Unsupported nested TOML array at line " + std::to_string(line_num);
                 return {};
             }
-            auto items = parser_detail::splitCommaSeparated(array_body);
+            auto items = splitTomlArrayItems(array_body);
+            if (!items.empty() && items.back().empty() && parser_detail::trim(array_body).back() == ',') {
+                items.pop_back();
+            }
             ScalarKind array_kind = ScalarKind::Unknown;
             std::string result;
             for (size_t index = 0; index < items.size(); ++index) {
@@ -176,9 +238,13 @@ private:
                 if (index > 0) {
                     result += ",";
                 }
-                result += normalizeScalar(items[index], line_num);
+                std::string normalized_item = normalizeScalar(items[index], line_num);
                 if (!m_last_error.empty()) {
                     return {};
+                }
+                result += normalized_item;
+                if (array_items != nullptr) {
+                    array_items->push_back(std::move(normalized_item));
                 }
             }
             return result;
@@ -194,7 +260,7 @@ private:
             return {};
         }
         if (value.front() == '"' || value.front() == '\'') {
-            if (!parser_detail::isQuoted(value)) {
+            if (!isTerminalQuotedTomlString(value)) {
                 m_last_error = "Unterminated TOML string at line " + std::to_string(line_num);
                 return {};
             }
@@ -202,10 +268,11 @@ private:
                 m_last_error = "Invalid TOML escape at line " + std::to_string(line_num);
                 return {};
             }
-            return parser_detail::unquote(value);
-        }
-        if (parser_detail::isQuoted(value)) {
-            return parser_detail::unquote(value);
+            if (!hasValidTomlStringQuotes(value)) {
+                m_last_error = "Invalid TOML string at line " + std::to_string(line_num);
+                return {};
+            }
+            return unquoteTomlString(value);
         }
         if (value.front() == '{' || value.back() == '}') {
             m_last_error = "Unsupported TOML inline table at line " + std::to_string(line_num);
@@ -236,10 +303,13 @@ private:
             return ScalarKind::Invalid;
         }
         if (value.front() == '"' || value.front() == '\'') {
-            if (!parser_detail::isQuoted(value)) {
+            if (!isTerminalQuotedTomlString(value)) {
                 return ScalarKind::Invalid;
             }
             if (value.front() == '"' && !hasValidEscapes(value)) {
+                return ScalarKind::Invalid;
+            }
+            if (!hasValidTomlStringQuotes(value)) {
                 return ScalarKind::Invalid;
             }
             return ScalarKind::String;
@@ -313,6 +383,133 @@ private:
         return has_digit && index == value.length();
     }
 
+    static std::string stripTomlInlineComment(const std::string& text) {
+        bool in_single_quote = false;
+        bool in_double_quote = false;
+        bool escaped = false;
+
+        for (size_t index = 0; index < text.length(); ++index) {
+            char character = text[index];
+
+            if (in_double_quote && escaped) {
+                escaped = false;
+                continue;
+            }
+            if (in_double_quote && character == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (character == '\'' && !in_double_quote) {
+                in_single_quote = !in_single_quote;
+                continue;
+            }
+            if (character == '"' && !in_single_quote) {
+                in_double_quote = !in_double_quote;
+                continue;
+            }
+            if (character == '#' && !in_single_quote && !in_double_quote) {
+                return parser_detail::trim(text.substr(0, index));
+            }
+        }
+
+        return parser_detail::trim(text);
+    }
+
+    static std::vector<std::string> splitTomlArrayItems(const std::string& text) {
+        if (parser_detail::trim(text).empty()) {
+            return {};
+        }
+
+        std::vector<std::string> result;
+        std::string item;
+        bool in_single_quote = false;
+        bool in_double_quote = false;
+        bool escaped = false;
+
+        for (char character : text) {
+            if (in_double_quote && escaped) {
+                item += character;
+                escaped = false;
+                continue;
+            }
+            if (in_double_quote && character == '\\') {
+                item += character;
+                escaped = true;
+                continue;
+            }
+            if (character == '\'' && !in_double_quote) {
+                in_single_quote = !in_single_quote;
+                item += character;
+                continue;
+            }
+            if (character == '"' && !in_single_quote) {
+                in_double_quote = !in_double_quote;
+                item += character;
+                continue;
+            }
+            if (character == ',' && !in_single_quote && !in_double_quote) {
+                result.push_back(parser_detail::trim(item));
+                item.clear();
+                continue;
+            }
+
+            item += character;
+        }
+
+        result.push_back(parser_detail::trim(item));
+        return result;
+    }
+
+    static bool isTerminalQuotedTomlString(const std::string& value) {
+        if (value.length() < 2 || (value.front() != '"' && value.front() != '\'') || value.back() != value.front()) {
+            return false;
+        }
+        if (value.front() == '\'') {
+            return true;
+        }
+
+        size_t slash_count = 0;
+        for (size_t index = value.length() - 2; index > 0 && value[index] == '\\'; --index) {
+            ++slash_count;
+        }
+        return slash_count % 2 == 0;
+    }
+
+    static bool hasValidTomlStringQuotes(const std::string& value) {
+        char quote = value.front();
+        if (quote == '\'') {
+            for (size_t index = 1; index + 1 < value.length(); ++index) {
+                if (value[index] == '\'') {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bool escaped = false;
+        for (size_t index = 1; index + 1 < value.length(); ++index) {
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (value[index] == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (value[index] == '"') {
+                return false;
+            }
+        }
+        return !escaped;
+    }
+
+    static std::string unquoteTomlString(const std::string& value) {
+        if (value.front() == '\'') {
+            return value.substr(1, value.length() - 2);
+        }
+        return parser_detail::processEscapes(value.substr(1, value.length() - 2));
+    }
+
     static bool hasValidEscapes(const std::string& value) {
         for (size_t index = 1; index + 1 < value.length(); ++index) {
             if (value[index] != '\\') {
@@ -360,6 +557,52 @@ private:
         return true;
     }
 
+    static bool hasClosedArrayValue(const std::string& raw_value) {
+        std::string value = parser_detail::trim(raw_value);
+        if (value.empty() || value.front() != '[') {
+            return true;
+        }
+
+        int depth = 0;
+        bool in_single_quote = false;
+        bool in_double_quote = false;
+        bool escaped = false;
+
+        for (char character : value) {
+            if (in_double_quote && escaped) {
+                escaped = false;
+                continue;
+            }
+            if (in_double_quote && character == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (character == '\'' && !in_double_quote) {
+                in_single_quote = !in_single_quote;
+                continue;
+            }
+            if (character == '"' && !in_single_quote) {
+                in_double_quote = !in_double_quote;
+                continue;
+            }
+            if (in_single_quote || in_double_quote) {
+                continue;
+            }
+            if (character == '[') {
+                ++depth;
+                continue;
+            }
+            if (character == ']') {
+                --depth;
+                if (depth <= 0) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     bool hasKeyConflict(const std::string& key) const {
         for (const auto& entry : m_values) {
             const std::string& existing_key = entry.first;
@@ -385,11 +628,11 @@ private:
         bool in_double_quote = false;
         bool escaped = false;
         for (char character : value) {
-            if (escaped) {
+            if (in_double_quote && escaped) {
                 escaped = false;
                 continue;
             }
-            if (character == '\\') {
+            if (in_double_quote && character == '\\') {
                 escaped = true;
                 continue;
             }
@@ -412,6 +655,7 @@ private:
     }
 
     std::unordered_map<std::string, std::string> m_values;
+    std::unordered_map<std::string, std::vector<std::string>> m_arrays;
     std::unordered_set<std::string> m_sections;
 };
 

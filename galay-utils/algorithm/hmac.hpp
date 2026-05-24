@@ -15,6 +15,7 @@
 #include <cstring>
 #include <cstdint>
 #include <array>
+#include <vector>
 
 namespace galay::utils
 {

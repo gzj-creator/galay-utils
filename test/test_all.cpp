@@ -684,6 +684,66 @@ tags = ["primary", "readonly"]
     auto tags = toml.getArray("database.tags");
     assert(tags.size() == 2 && tags[0] == "primary" && tags[1] == "readonly");
 
+    TomlParser tomlMultilineArray;
+    std::string tomlMultilineArrayContent = R"(
+ports = [
+    8000,
+    8001,
+    8002,
+]
+
+[database]
+tags = [
+    "primary",
+    "readonly",
+]
+)";
+
+    assert(tomlMultilineArray.parseString(tomlMultilineArrayContent));
+    auto multilinePorts = tomlMultilineArray.getArray("ports");
+    assert(multilinePorts.size() == 3 && multilinePorts[0] == "8000" && multilinePorts[2] == "8002");
+
+    auto multilineTags = tomlMultilineArray.getArray("database.tags");
+    assert(multilineTags.size() == 2 && multilineTags[0] == "primary" && multilineTags[1] == "readonly");
+
+    TomlParser tomlTrailingCommaArray;
+    assert(tomlTrailingCommaArray.parseString("ports = [7000, 7001,]"));
+    auto trailingCommaPorts = tomlTrailingCommaArray.getArray("ports");
+    assert(trailingCommaPorts.size() == 2 && trailingCommaPorts[0] == "7000" && trailingCommaPorts[1] == "7001");
+
+    TomlParser tomlCommentedMultilineArray;
+    std::string tomlCommentedMultilineArrayContent = R"(
+ports = [ # opening comment
+    8000, # first port
+
+    8001
+] # closing comment
+)";
+
+    assert(tomlCommentedMultilineArray.parseString(tomlCommentedMultilineArrayContent));
+    auto commentedPorts = tomlCommentedMultilineArray.getArray("ports");
+    assert(commentedPorts.size() == 2 && commentedPorts[0] == "8000" && commentedPorts[1] == "8001");
+
+    TomlParser tomlQuotedMultilineArray;
+    std::string tomlQuotedMultilineArrayContent = R"(
+tags = [
+    "literal ] # not comment",
+    "a,b",
+    'C:\tmp\',
+]
+)";
+
+    assert(tomlQuotedMultilineArray.parseString(tomlQuotedMultilineArrayContent));
+    auto quotedTags = tomlQuotedMultilineArray.getArray("tags");
+    assert(quotedTags.size() == 3);
+    assert(quotedTags[0] == "literal ] # not comment");
+    assert(quotedTags[1] == "a,b");
+    assert(quotedTags[2] == R"(C:\tmp\)");
+
+    TomlParser tomlLiteralString;
+    assert(tomlLiteralString.parseString(R"(path = 'C:\tmp\' # keep literal backslash)"));
+    assert(tomlLiteralString.getValue("path").value() == R"(C:\tmp\)");
+
     auto tomlParser = ParserManager::instance().createParser("config.toml");
     assert(tomlParser != nullptr);
     assert(tomlParser->parseString(tomlContent));
@@ -744,7 +804,7 @@ ports = [8080, 8081]
     assert(!invalidToml.parseString("number = nan"));
     assert(!invalidToml.parseString("number = inf"));
     assert(!invalidToml.parseString("mixed = [1, \"a\"]"));
-    assert(!invalidToml.parseString("trailing = [1, 2,]"));
+    assert(!invalidToml.parseString("trailing = [1, ,]"));
     assert(!invalidToml.parseString("database = \"x\"\n[database]\nhost = \"localhost\""));
     assert(!invalidToml.parseString("[database]\nhost = \"localhost\"\n[database.host]\nport = 1"));
     assert(!invalidToml.parseString("a = 1\na.b = 2"));
@@ -753,6 +813,17 @@ ports = [8080, 8081]
     assert(!invalidToml.parseString("key = # missing"));
     assert(!invalidToml.parseString("\"quoted key\" = 1"));
     assert(!invalidToml.parseString("中文 = 1"));
+    assert(!invalidToml.parseString("name = \"a\" \"b\""));
+    assert(!invalidToml.parseString("name = 'a' 'b'"));
+    assert(!invalidToml.parseString(R"(name = "unterminated by escaped quote\")"));
+    assert(!invalidToml.parseString("ports = [\n    8000,\n"));
+    assert(!invalidToml.parseString("ports = [\n    8000\n] trailing"));
+    assert(!invalidToml.parseString("ports = [\n    8000\n[database]\nhost = \"localhost\"\n"));
+    assert(!invalidToml.parseString("ports = [\n    8000\nname = \"x\"\n]"));
+    assert(!invalidToml.parseString("names = [\n    \"a]\n]"));
+    assert(!invalidToml.parseString("nested = [\n    [1]\n]"));
+    assert(!invalidToml.parseString("tags = [\n    \"a\"\n    \"b\"\n]"));
+    assert(!invalidToml.parseString("tags = [\n    'a'\n    'b'\n]"));
 
     TomlParser tomlCrlf;
     assert(tomlCrlf.parseString("name = \"galay\"\r\n[server]\r\nport = 8080\r\n"));

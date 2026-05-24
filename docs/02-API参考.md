@@ -409,7 +409,7 @@
   - 继承 `ParserBase`
 - `TomlParser`
   - 继承 `ParserBase`
-  - 支持基础 key-value、section、dotted key、字符串、数字、布尔值和单行数组
+  - 支持基础 key-value、section、dotted key、字符串、数字、布尔值和数组
   - `getArray`
 - `ParserManager`
   - `instance()`

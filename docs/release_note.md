@@ -34,3 +34,17 @@
   - 拆分 parser 模块头文件，保留 `parser.hpp` 兼容入口，并同步更新 umbrella header、C++ 模块入口与使用文档。
   - 移除 `RateLimiter` 的异步 `acquire()` / awaitable 路径，只保留同步非阻塞 `tryAcquire()` 接口。
   - 移除限流器对 `galay-kernel` 与 `concurrentqueue/moodycamel` 的依赖，测试构建不再查找或链接 `galay-kernel`。
+
+## v2.1.3 - 2026-05-24
+
+- **版本级别**: patch
+- **Git 提交消息**: fix: 修复 TOML 多行数组解析与头文件编译问题
+- **Git Tag**: v2.1.3
+
+### 变更摘要
+
+- 修复 `TomlParser` 解析多行 TOML 数组失败的问题，支持数组尾逗号、数组内注释和空行
+- 修复 TOML 数组字符串元素包含逗号时 `getArray()` 误拆分的问题，并加强字符串引号校验与 literal string 反斜杠处理
+- 修复 `defn.hpp` 与 `backtrace/trace.hpp` 中重复声明导致 `test_all` 无法编译的问题
+- 修复 `hmac.hpp` 单独包含时缺少 `<vector>` 依赖的问题
+- 同步更新 `TomlParser` 文档，并将 CMake project 版本提升到 `2.1.3`

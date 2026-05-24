@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+## [v2.1.3] - 2026-05-24
+
+### Fixed
+- 修复 `TomlParser` 解析多行 TOML 数组失败的问题，支持数组尾逗号、数组内注释和空行。
+- 修复 TOML 数组字符串元素包含逗号时 `getArray()` 误拆分的问题，并加强字符串引号校验与 literal string 反斜杠处理。
+- 修复 `defn.hpp` 与 `backtrace/trace.hpp` 中重复声明导致 `test_all` 无法编译的问题。
+- 修复 `hmac.hpp` 单独包含时缺少 `<vector>` 依赖的问题。
+
+### Docs
+- 同步更新 `TomlParser` 文档，移除“仅支持单行数组”的过期描述。
+
 ## [v2.1.2] - 2026-05-20
 
 ### Docs
