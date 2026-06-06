@@ -19,7 +19,7 @@
 #include <unordered_map>
 
 #include "galay-utils/galay_utils.hpp"
-#include <galay-utils/resilience/rate_limiter.hpp>
+#include <galay-utils/tool/rate_limiter.hpp>
 
 using namespace galay::utils;
 

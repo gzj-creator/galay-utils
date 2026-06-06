@@ -1,4 +1,4 @@
-#include "galay-utils/buffer/ring_buffer.hpp"
+#include "galay-utils/tool/ring_buffer.hpp"
 
 #include <algorithm>
 #include <chrono>

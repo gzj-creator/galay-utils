@@ -22,46 +22,46 @@
 #include "galay-utils/core/random.hpp"
 
 /// 系统工具
-#include "galay-utils/platform/system.hpp"
+#include "galay-utils/process/system.hpp"
 
 /// 时间工具
 #include "galay-utils/core/time.hpp"
 
 /// 堆栈跟踪
-#include "galay-utils/platform/backtrace.hpp"
+#include "galay-utils/process/backtrace.hpp"
 
 /// 信号处理
-#include "galay-utils/platform/signal.hpp"
+#include "galay-utils/process/signal.hpp"
 
 /// 对象池
 #include "galay-utils/concurrency/pool.hpp"
 
 /// LRU 缓存
-#include "galay-utils/cache/lru_cache.hpp"
+#include "galay-utils/tool/lru_cache.hpp"
 
 /// 字节队列视图
-#include "galay-utils/buffer/byte_queue_view.hpp"
+#include "galay-utils/tool/byte_queue_view.hpp"
 
 /// 环形缓冲区
-#include "galay-utils/buffer/ring_buffer.hpp"
+#include "galay-utils/tool/ring_buffer.hpp"
 
 /// 线程池
 #include "galay-utils/concurrency/thread.hpp"
 
 /// 熔断器
-#include "galay-utils/resilience/circuit_breaker.hpp"
+#include "galay-utils/tool/circuit_breaker.hpp"
 
 /// 一致性哈希
-#include "galay-utils/routing/consistent_hash.hpp"
+#include "galay-utils/algorithm/consistent_hash.hpp"
 
 /// 字典树
-#include "galay-utils/data/trie.hpp"
+#include "galay-utils/algorithm/trie.hpp"
 
 /// 哈夫曼编码
-#include "galay-utils/data/huffman.hpp"
+#include "galay-utils/algorithm/huffman.hpp"
 
 /// 多版本并发控制
-#include "galay-utils/data/mvcc.hpp"
+#include "galay-utils/algorithm/mvcc.hpp"
 
 /// 命令行参数解析
 #include "galay-utils/app/app.hpp"
@@ -70,10 +70,10 @@
 #include "galay-utils/config/parser_manager.hpp"
 
 /// 进程管理
-#include "galay-utils/platform/process.hpp"
+#include "galay-utils/process/process.hpp"
 
 /// 负载均衡
-#include "galay-utils/routing/balancer.hpp"
+#include "galay-utils/tool/balancer.hpp"
 
 /// Base64 编解码
 #include "galay-utils/encoding/base64.hpp"

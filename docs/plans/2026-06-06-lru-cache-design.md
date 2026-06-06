@@ -6,7 +6,7 @@ Add a reusable, extensible LRU cache utility for galay-utils.
 
 ## Scope
 
-The cache is a C++23 header-only template under `galay-utils/cache/lru_cache.hpp`.
+The cache is a C++23 header-only template under `galay-utils/tool/lru_cache.hpp`.
 It is exported through `galay-utils/galay_utils.hpp` and the C++ module facade.
 
 ## Thread Safety

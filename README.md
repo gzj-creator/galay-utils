@@ -111,7 +111,7 @@ ctest --test-dir build-test --output-on-failure
 - `Ninja` 或 `Visual Studio` 生成器
 - 非 `AppleClang`
 - 可用的 C++23 模块扫描工具链
-- 当前模块烟雾测试覆盖 core、platform、cache、buffer、concurrency、resilience、routing、data、app/config、encoding/crypto 的基础导入面；限流器仍通过细粒度头显式包含
+- 当前模块烟雾测试覆盖 core、process、tool、concurrency、algorithm、app/config、encoding/crypto 的基础导入面；限流器仍通过细粒度头显式包含
 
 ```bash
 cmake -S . -B build-mod -G Ninja \
@@ -143,13 +143,13 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 ### 头文件选择建议
 
 - 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/core/string.hpp`
-- 只有在需要限流器家族时，再额外包含 `galay-utils/resilience/rate_limiter.hpp`
+- 只有在需要限流器家族时，再额外包含 `galay-utils/tool/rate_limiter.hpp`
 - 只有在工具链满足模块要求时，再使用 `import galay.utils;`
 
 ## 依赖边界
 
 - `galay-utils` 是接口库，公开头不再依赖 `galay-kernel`
-- `galay-utils/resilience/rate_limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
+- `galay-utils/tool/rate_limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
 - 异步限流器和 `acquire()` awaitable 已移除；部分限流器内部带锁，不适合作为协程调度器上的 awaitable 使用
 - `test/<area>/*_test.cpp` 与 `test/import_smoke.cpp` 不再额外链接 `galay-kernel`
 

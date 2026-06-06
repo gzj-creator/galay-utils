@@ -15,26 +15,26 @@
 - `galay-utils/galay_utils.hpp`
 - `galay-utils/core/string.hpp`
 - `galay-utils/core/random.hpp`
-- `galay-utils/platform/system.hpp`
+- `galay-utils/process/system.hpp`
 - `galay-utils/core/time.hpp`
 - `galay-utils/core/type_name.hpp`
-- `galay-utils/platform/backtrace.hpp`
-- `galay-utils/platform/signal.hpp`
+- `galay-utils/process/backtrace.hpp`
+- `galay-utils/process/signal.hpp`
 - `galay-utils/concurrency/thread.hpp`
 - `galay-utils/concurrency/pool.hpp`
-- `galay-utils/cache/lru_cache.hpp`
-- `galay-utils/buffer/byte_queue_view.hpp`
-- `galay-utils/buffer/ring_buffer.hpp`
-- `galay-utils/resilience/rate_limiter.hpp`
-- `galay-utils/resilience/circuit_breaker.hpp`
-- `galay-utils/routing/balancer.hpp`
-- `galay-utils/routing/consistent_hash.hpp`
-- `galay-utils/data/trie.hpp`
-- `galay-utils/data/mvcc.hpp`
-- `galay-utils/data/huffman.hpp`
+- `galay-utils/tool/lru_cache.hpp`
+- `galay-utils/tool/byte_queue_view.hpp`
+- `galay-utils/tool/ring_buffer.hpp`
+- `galay-utils/tool/rate_limiter.hpp`
+- `galay-utils/tool/circuit_breaker.hpp`
+- `galay-utils/tool/balancer.hpp`
+- `galay-utils/algorithm/consistent_hash.hpp`
+- `galay-utils/algorithm/trie.hpp`
+- `galay-utils/algorithm/mvcc.hpp`
+- `galay-utils/algorithm/huffman.hpp`
 - `galay-utils/app/app.hpp`
 - `galay-utils/config/parser_manager.hpp`
-- `galay-utils/platform/process.hpp`
+- `galay-utils/process/process.hpp`
 - `galay-utils/encoding/base64.hpp`
 - `galay-utils/crypto/md5.hpp`
 - `galay-utils/crypto/murmur_hash3.hpp`
@@ -51,10 +51,10 @@
 | String | `galay-utils/core/string.hpp` | `StringUtils` |
 | Random | `galay-utils/core/random.hpp` | `RandomGenerator`、`Randomizer` |
 | Time | `galay-utils/core/time.hpp` | `Time`、`StopWatch<Clock>`、`Deadline<Clock>`、`Backoff` |
-| System | `galay-utils/platform/system.hpp` | `System`、`System::AddressType` |
+| System | `galay-utils/process/system.hpp` | `System`、`System::AddressType` |
 | TypeName | `galay-utils/core/type_name.hpp` | `getTypeName<T>()`、`getTypeName(obj)`、`demangleSymbol()` |
-| BackTrace | `galay-utils/platform/backtrace.hpp` | `BackTrace` |
-| Signal | `galay-utils/platform/signal.hpp` | `SignalHandler` |
+| BackTrace | `galay-utils/process/backtrace.hpp` | `BackTrace` |
+| Signal | `galay-utils/process/signal.hpp` | `SignalHandler` |
 
 ### `StringUtils`
 
@@ -173,9 +173,9 @@
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
-| Cache | `galay-utils/cache/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
-| ByteQueueView | `galay-utils/buffer/byte_queue_view.hpp` | `ByteQueueView` |
-| RingBuffer | `galay-utils/buffer/ring_buffer.hpp` | `RingBuffer` |
+| Cache | `galay-utils/tool/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
+| ByteQueueView | `galay-utils/tool/byte_queue_view.hpp` | `ByteQueueView` |
+| RingBuffer | `galay-utils/tool/ring_buffer.hpp` | `RingBuffer` |
 | Thread | `galay-utils/concurrency/thread.hpp` | `ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>` |
 | Pool | `galay-utils/concurrency/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
 
@@ -284,8 +284,8 @@
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
-| RateLimiter | `galay-utils/resilience/rate_limiter.hpp` | `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` |
-| CircuitBreaker | `galay-utils/resilience/circuit_breaker.hpp` | `CircuitState`、`CircuitBreakerConfig`、`CircuitBreaker` |
+| RateLimiter | `galay-utils/tool/rate_limiter.hpp` | `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` |
+| CircuitBreaker | `galay-utils/tool/circuit_breaker.hpp` | `CircuitState`、`CircuitBreakerConfig`、`CircuitBreaker` |
 
 ### `RateLimiter`
 
@@ -338,11 +338,11 @@
 
 | 模块 | 头文件 | 主要类型 / 方法 |
 |---|---|---|
-| Balancer | `galay-utils/routing/balancer.hpp` | `RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>` |
-| ConsistentHash | `galay-utils/routing/consistent_hash.hpp` | `NodeConfig`、`NodeStatus`、`PhysicalNode`、`ConsistentHash` |
-| Trie | `galay-utils/data/trie.hpp` | `TrieTree` |
-| MVCC | `galay-utils/data/mvcc.hpp` | `VersionedValue<T>`、`Mvcc<T>`、`Snapshot`、`Transaction<T>` |
-| Huffman | `galay-utils/data/huffman.hpp` | `HuffmanCode`、`HuffmanTable<T>`、`HuffmanEncoder<T>`、`HuffmanDecoder<T>`、`HuffmanBuilder<T>` |
+| Balancer | `galay-utils/tool/balancer.hpp` | `RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>` |
+| ConsistentHash | `galay-utils/algorithm/consistent_hash.hpp` | `NodeConfig`、`NodeStatus`、`PhysicalNode`、`ConsistentHash` |
+| Trie | `galay-utils/algorithm/trie.hpp` | `TrieTree` |
+| MVCC | `galay-utils/algorithm/mvcc.hpp` | `VersionedValue<T>`、`Mvcc<T>`、`Snapshot`、`Transaction<T>` |
+| Huffman | `galay-utils/algorithm/huffman.hpp` | `HuffmanCode`、`HuffmanTable<T>`、`HuffmanEncoder<T>`、`HuffmanDecoder<T>`、`HuffmanBuilder<T>` |
 
 ### `Balancer`
 
@@ -455,7 +455,7 @@
 |---|---|---|
 | App | `galay-utils/app/app.hpp` | `ArgType`、`ArgValue`、`Arg`、`Cmd`、`App` |
 | Parser | `galay-utils/config/parser_manager.hpp` | `ParserBase`、`ConfigParser`、`IniParser`、`EnvParser`、`TomlParser`、`ParserManager` |
-| Process | `galay-utils/platform/process.hpp` | `ProcessId`、`ExitStatus`、`Process` |
+| Process | `galay-utils/process/process.hpp` | `ProcessId`、`ExitStatus`、`Process` |
 
 ### `App`
 
@@ -630,7 +630,7 @@
 
 - 当前仓库没有统一的 `expected` / 错误码基类；检索失败语义时必须回到对应头文件签名，而不能把整个仓库当成单一错误模型
 - 纯工具类主路径集中在 `core/`、`encoding/`、`crypto/`、`common/`，它们主要回答“输入是什么、返回值是什么”
-- 线程 / 资源相关能力集中在 `concurrency/`、`resilience/`、`platform/`，检索时要额外关注阻塞/等待/资源释放语义
+- 线程 / 资源相关能力集中在 `concurrency/`、`process/`、`tool/`，检索时要额外关注阻塞/等待/资源释放语义
 - `ThreadPool::addTask(...)` 返回 `std::future<...>`，而 `execute(...)` 是 fire-and-forget 风格；两者不应混用为同一等待模型
 - `ObjectPool<T>` 与 `BlockingObjectPool<T>` 不是同一组方法：前者是“可扩容 + 非阻塞取对象”，后者是“固定池 + 阻塞等待”
 - `RateLimiter` 不再提供 `acquire(...)` awaitable；使用 `tryAcquire(...)` 获取同步非阻塞结果

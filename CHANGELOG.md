@@ -14,11 +14,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - 新增 `ByteQueueView` 与 `RingBuffer` 通用缓冲工具，覆盖流式解析、环绕读写、span 视图和 POSIX `iovec` 视图。
 - 增加 ByteQueueView、RingBuffer benchmark，并补充对应边界单测与压测文档。
 - 新增本地无锁 `RandomGenerator`，用于协程热路径或单线程上下文，避免共享 `Randomizer` 的 mutex 竞争。
-- 新增模块生产化路线图，并完成目录/测试布局收敛与 core 工具硬化两个阶段。
+- 新增模块生产化路线图和目录收敛计划，并完成目录/测试布局收敛与 core 工具硬化两个阶段。
 
 ### Changed
 - 将系统时间戳与时间格式化接口从 `System` 迁移到 `Time`，`System` 不再保留时间相关 API。
-- 将公开头文件按 `core`、`platform`、`concurrency`、`resilience`、`routing`、`data`、`app`、`config`、`encoding`、`crypto` 等职责目录收敛，不保留兼容头。
+- 将公开头文件进一步收敛到 `process`、`tool`、`algorithm` 等 canonical include 目录，不保留兼容头。
 - 将原单体 `test_all.cpp` 拆分为 `test/<area>/*_test.cpp` 分组 CTest target，并扩展模块导入烟测覆盖。
 - 明确 `StringUtils`、`Time`、`TypeName`、`RandomGenerator`、`Randomizer` 的线程安全、阻塞与失败语义文档。
 

@@ -1,6 +1,6 @@
 import galay.utils;
 
-#include <galay-utils/resilience/rate_limiter.hpp>
+#include <galay-utils/tool/rate_limiter.hpp>
 
 #include <cassert>
 #include <chrono>
@@ -57,6 +57,10 @@ int main() {
     Mvcc<int> mvcc;
     mvcc.putValue(42);
     assert(mvcc.getCurrentValue() != nullptr);
+
+    HuffmanTable<char> huffman;
+    huffman.addCode('a', 0, 1);
+    assert(huffman.hasSymbol('a'));
 
     ArgValue value(std::string("7"));
     assert(value.as<int>() == 7);

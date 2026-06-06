@@ -58,11 +58,10 @@ The current layout is usable but scattered. Consolidate by responsibility:
 | Current Area | Target Area | Notes |
 |---|---|---|
 | `string/`, `random/`, `time/`, `common/` | `core/` or `common/` | Prefer `core/` for public pure helpers and `common/` for low-level definitions. |
-| `system/`, `process/`, `signal/`, `backtrace/` | `platform/` | Platform-specific helpers share OS boundary documentation and tests. |
+| `system/`, `process/`, `signal/`, `backtrace/` | `process/` | Process and OS-boundary helpers share ownership and failure-mode documentation. |
 | `thread/`, `pool/` | `concurrency/` | Blocking/thread-owning utilities are explicit and grouped. |
-| `cache/`, `buffer/` | keep grouped as `cache/`, `buffer/` | Already coherent after recent work. |
-| `ratelimiter/`, `circuitbreaker/`, `balancer/`, `consistent_hash/` | `resilience/` and `routing/` | Separate flow control/resilience from node selection/routing. |
-| `trie/`, `mvcc/`, `huffman/` | `data/` | Pure data structures. |
+| `cache/`, `buffer/`, `ratelimiter/`, `circuitbreaker/`, `balancer/` | `tool/` | Business-facing engineering tools are grouped under one include path. |
+| `consistent_hash/`, `trie/`, `mvcc/`, `huffman/` | `algorithm/` | Algorithms and data structures share the canonical algorithm include path. |
 | `args/`, `parser/` | `app/` and `config/` | CLI and config parsing are distinct application support areas. |
 | `algorithm/` | `crypto/` and `encoding/` | Split hashes/HMAC/salt from Base64. |
 | `test/<area>/*_test.cpp` | `test/<area>/*_test.cpp` | One CTest target per module or module group. |
@@ -142,10 +141,10 @@ Harden pure utility modules and make their thread-safety and failure behavior ex
 ## Plan 3: System and Platform Utility Hardening
 
 **Files:**
-- Modify or Move: `galay-utils/platform/system.hpp`
-- Modify or Move: `galay-utils/platform/process.hpp`
-- Modify or Move: `galay-utils/platform/signal.hpp`
-- Modify or Move: `galay-utils/platform/backtrace.hpp`
+- Modify or Move: `galay-utils/process/system.hpp`
+- Modify or Move: `galay-utils/process/process.hpp`
+- Modify or Move: `galay-utils/process/signal.hpp`
+- Modify or Move: `galay-utils/process/backtrace.hpp`
 - Test: `test/platform/*_test.cpp`
 - Docs: `docs/06-高级主题.md`, `docs/07-常见问题.md`
 
@@ -203,11 +202,11 @@ Clarify blocking behavior and shutdown semantics for thread-owning and mutex/con
 ## Plan 5: Flow Control, Routing, and Resilience Hardening
 
 **Files:**
-- Modify or Move: `galay-utils/resilience/rate_limiter.hpp`
-- Modify or Move: `galay-utils/resilience/circuit_breaker.hpp`
-- Modify or Move: `galay-utils/routing/balancer.hpp`
-- Modify or Move: `galay-utils/routing/balancer.inl`
-- Modify or Move: `galay-utils/routing/consistent_hash.hpp`
+- Modify or Move: `galay-utils/tool/rate_limiter.hpp`
+- Modify or Move: `galay-utils/tool/circuit_breaker.hpp`
+- Modify or Move: `galay-utils/tool/balancer.hpp`
+- Modify or Move: `galay-utils/tool/balancer.inl`
+- Modify or Move: `galay-utils/algorithm/consistent_hash.hpp`
 - Test: `test/resilience/*_test.cpp`, `test/routing/*_test.cpp`
 - Benchmark: `benchmark/ratelimiter_benchmark.cpp`, `benchmark/balancer_benchmark.cpp`, `benchmark/consistent_hash_benchmark.cpp`
 
@@ -235,9 +234,9 @@ Harden stateful decision modules where bugs affect traffic distribution, throttl
 ## Plan 6: Data Structure, Parser, and CLI Hardening
 
 **Files:**
-- Modify or Move: `galay-utils/data/trie.hpp`
-- Modify or Move: `galay-utils/data/mvcc.hpp`
-- Modify or Move: `galay-utils/data/huffman.hpp`
+- Modify or Move: `galay-utils/algorithm/trie.hpp`
+- Modify or Move: `galay-utils/algorithm/mvcc.hpp`
+- Modify or Move: `galay-utils/algorithm/huffman.hpp`
 - Modify or Move: `galay-utils/config/*.hpp`
 - Modify or Move: `galay-utils/app/app.hpp`
 - Test: `test/data/*_test.cpp`, `test/app/*_test.cpp`, `test/config/*_test.cpp`
