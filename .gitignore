@@ -9,3 +9,6 @@ lib/
 # IDE and cache
 .claude/
 .cache/
+
+# Local git worktrees
+.worktrees/
