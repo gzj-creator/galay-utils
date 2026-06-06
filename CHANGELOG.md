@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Added
+- 新增非线程安全的通用 `LruCache`，支持容量 LRU 淘汰、惰性 TTL 淘汰、自定义哈希/比较器、淘汰回调和可选 expire-after-access。
+- 为 `LruCache` 增加可编译期开关控制的统计收集，默认关闭统计以减少容量缓存热路径开销。
+- 增加 LRU 单测和 benchmark，对比 LeetCode 常见 LRU 实现、默认容量模式、统计开启模式和 TTL 模式。
+
 ## [v2.1.3] - 2026-05-24
 
 ### Fixed

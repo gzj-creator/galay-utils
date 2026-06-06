@@ -145,6 +145,11 @@ if(BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+option(BUILD_BENCHMARKS "Build benchmark executables" OFF)
+if(BUILD_BENCHMARKS)
+    add_subdirectory(benchmark)
+endif()
+
 if(BUILD_TESTING)
     add_subdirectory(test)
 endif()

@@ -33,6 +33,9 @@
 /// 对象池
 #include "pool/pool.hpp"
 
+/// LRU 缓存
+#include "galay-utils/cache/lru_cache.hpp"
+
 /// 线程池
 #include "thread/thread.hpp"
 

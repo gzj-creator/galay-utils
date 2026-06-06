@@ -14,6 +14,7 @@ export {
 #include "galay-utils/backtrace/trace.hpp"
 #include "galay-utils/signal/signal.hpp"
 #include "galay-utils/pool/pool.hpp"
+#include "galay-utils/cache/lru_cache.hpp"
 #include "galay-utils/thread/thread.hpp"
 #include "galay-utils/circuitbreaker/breaker.hpp"
 #include "galay-utils/consistent_hash/hash.hpp"
