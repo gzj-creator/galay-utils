@@ -17,14 +17,14 @@
 | 真实 benchmark | `benchmark/` 下提供 LRU、ByteQueueView、RingBuffer benchmark；`BUILD_BENCHMARKS=OFF` 默认不构建 |
 | 真实测试 | `test/<area>/*_test.cpp` → 多个 CTest target；可选模块烟雾测试 `test_import_smoke` |
 | Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
-| 额外头依赖 | 无 `galay-kernel` / `concurrentqueue` 依赖；限流器仅提供同步 `tryAcquire` 接口 |
+| 额外头依赖 | 无 `galay-kernel` 依赖；`ThreadPool` 使用 `<concurrentqueue/moodycamel/*.h>`；限流器仅提供同步 `tryAcquire` 接口 |
 | 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
 ## 模块概览
 
 - 核心工具：`StringUtils`、`RandomGenerator`、`Randomizer`、`Time`、`TypeName`
 - 平台工具：`System`、`BackTrace`、`SignalHandler`、`Process`
-- 并发与资源：`ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>`、`ObjectPool<T>`、`BlockingObjectPool<T>`
+- 并发与资源：`ThreadPool`、`TaskWaiter`、`ObjectPool<T>`、`BlockingObjectPool<T>`
 - 流控与容错：`CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter`、`CircuitBreaker`
 - 路由与分布式：`RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>`、`ConsistentHash`
 - 数据结构：`TrieTree`、`Mvcc<T>`、`Snapshot`、`Transaction<T>`、`Huffman*`
@@ -61,7 +61,7 @@ cmake --build build --parallel
 - CMake `>= 3.16`
 - `examples/include/e1_basic.cpp` 使用 umbrella header `galay-utils/galay_utils.hpp`
 - 当前 umbrella header 不再默认导出 `RateLimiter`
-- 限流器头文件也不再要求 `galay-kernel` / `concurrentqueue` 头文件
+- `ThreadPool` 需要能找到 `<concurrentqueue/moodycamel/blockingconcurrentqueue.h>`；限流器头文件不要求 `galay-kernel`
 
 ```bash
 cmake -S . -B build-examples \
@@ -86,7 +86,7 @@ cmake --build build-examples --target E1-BasicUsage --parallel
 - 编译器支持 C++23
 - CMake `>= 3.16`
 - `test/` 按模块组拆分为多个 `*_test` target；`resilience_test` 会额外直接包含限流器头
-- 无需安装 `galay-kernel` 或 `concurrentqueue`
+- 无需安装 `galay-kernel`；需要能找到 `concurrentqueue` 头文件，或通过 `GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR` 指向 include 根目录
 
 ```bash
 cmake -S . -B build-test \
@@ -149,6 +149,7 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 ## 依赖边界
 
 - `galay-utils` 是接口库，公开头不再依赖 `galay-kernel`
+- `ThreadPool` 基于 moodycamel `BlockingConcurrentQueue`，CMake 会查找 `concurrentqueue/moodycamel/*.h`
 - `galay-utils/tool/rate_limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
 - 异步限流器和 `acquire()` awaitable 已移除；部分限流器内部带锁，不适合作为协程调度器上的 awaitable 使用
 - `test/<area>/*_test.cpp` 与 `test/import_smoke.cpp` 不再额外链接 `galay-kernel`

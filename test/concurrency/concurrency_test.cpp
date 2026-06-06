@@ -1,5 +1,8 @@
 #include "../test_common.hpp"
 
+#include <fstream>
+#include <sstream>
+
 void testPool() {
     std::cout << "=== Testing Pool ===" << std::endl;
 
@@ -33,6 +36,38 @@ void testPool() {
 
 // ==================== Thread Tests ====================
 
+void testThreadPoolUsesConcurrentQueueWithoutMutex() {
+    std::ifstream input(std::string(GALAY_UTILS_SOURCE_DIR) + "/galay-utils/concurrency/thread.hpp");
+    assert(input.good());
+
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    const std::string source = buffer.str();
+
+    const auto threadPoolStart = source.find("class ThreadPool");
+    const auto waiterStart = source.find("class TaskWaiter");
+    const auto removedListNode = source.find("struct ListNode");
+    const auto removedThreadSafeList = source.find("class ThreadSafeList");
+    assert(threadPoolStart != std::string::npos);
+    assert(waiterStart != std::string::npos);
+    assert(removedListNode == std::string::npos);
+    assert(removedThreadSafeList == std::string::npos);
+
+    const std::string threadPoolSource = source.substr(threadPoolStart, waiterStart - threadPoolStart);
+    const std::string waiterSource = source.substr(waiterStart);
+
+    assert(threadPoolSource.find("moodycamel::BlockingConcurrentQueue") != std::string::npos);
+    assert(threadPoolSource.find("std::mutex") == std::string::npos);
+    assert(threadPoolSource.find("std::condition_variable") == std::string::npos);
+    assert(threadPoolSource.find("lock_guard") == std::string::npos);
+    assert(threadPoolSource.find("unique_lock") == std::string::npos);
+
+    assert(waiterSource.find("std::mutex") == std::string::npos);
+    assert(waiterSource.find("std::condition_variable") == std::string::npos);
+    assert(waiterSource.find("lock_guard") == std::string::npos);
+    assert(waiterSource.find("unique_lock") == std::string::npos);
+}
+
 void testThread() {
     std::cout << "=== Testing Thread ===" << std::endl;
 
@@ -65,17 +100,6 @@ void testThread() {
     waiter.wait();
     assert(counter == 5);
 
-    // Thread-safe list
-    ThreadSafeList<int> list;
-    list.pushBack(1);
-    list.pushBack(2);
-    list.pushFront(0);
-
-    assert(list.size() == 3);
-    assert(list.popFront().value() == 0);
-    assert(list.popBack().value() == 2);
-    assert(list.size() == 1);
-
     // Edge cases for thread pool
     // Zero thread pool
     ThreadPool zeroPool(0);
@@ -85,11 +109,22 @@ void testThread() {
     TaskWaiter emptyWaiter;
     emptyWaiter.wait(); // Should not hang
 
-    // Thread-safe list edge cases
-    ThreadSafeList<int> emptyList;
-    assert(emptyList.size() == 0);
-    assert(!emptyList.popFront().has_value());
-    assert(!emptyList.popBack().has_value());
+    ThreadPool stoppedPool(1);
+    stoppedPool.stop();
+
+    bool addTaskRejected = false;
+    try {
+        (void)stoppedPool.addTask([] { return 1; });
+    } catch (const std::runtime_error&) {
+        addTaskRejected = true;
+    }
+    assert(addTaskRejected);
+
+    std::atomic<int> ignored{0};
+    stoppedPool.execute([&ignored] {
+        ++ignored;
+    });
+    assert(ignored == 0);
 
     std::cout << "Thread tests passed!" << std::endl;
 }
@@ -180,6 +215,7 @@ int main() {
     std::cout << "\n=== concurrency_test ===" << std::endl;
     try {
         testPool();
+        testThreadPoolUsesConcurrentQueueWithoutMutex();
         testThread();
         stressTestPool();
         stressTestThreadPool();

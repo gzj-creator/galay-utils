@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 - 将系统时间戳与时间格式化接口从 `System` 迁移到 `Time`，`System` 不再保留时间相关 API。
 - 将公开头文件进一步收敛到 `process`、`tool`、`algorithm` 等 canonical include 目录，不保留兼容头。
+- 将 `ThreadPool` 任务队列改为 moodycamel `BlockingConcurrentQueue`，提交路径不再使用 `std::mutex` / `std::condition_variable`，通过 CMake 暴露 `concurrentqueue` 头依赖，并移除无实际使用场景的 `ThreadSafeList` / `ListNode`。
 - 将原单体 `test_all.cpp` 拆分为 `test/<area>/*_test.cpp` 分组 CTest target，并扩展模块导入烟测覆盖。
 - 明确 `StringUtils`、`Time`、`TypeName`、`RandomGenerator`、`Randomizer` 的线程安全、阻塞与失败语义文档。
 

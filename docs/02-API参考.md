@@ -176,7 +176,7 @@
 | Cache | `galay-utils/tool/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
 | ByteQueueView | `galay-utils/tool/byte_queue_view.hpp` | `ByteQueueView` |
 | RingBuffer | `galay-utils/tool/ring_buffer.hpp` | `RingBuffer` |
-| Thread | `galay-utils/concurrency/thread.hpp` | `ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>` |
+| Thread | `galay-utils/concurrency/thread.hpp` | `ThreadPool`、`TaskWaiter` |
 | Pool | `galay-utils/concurrency/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
 
 ### `LruCache`
@@ -238,19 +238,15 @@
 - `waitAll()`
 - `stop()` / `stopNow()`
 - 语义：`addTask(...)` 在池已停止时抛 `std::runtime_error`；`execute(...)` 只派发任务，不返回 `future`
+- 实现：任务队列基于 `moodycamel::BlockingConcurrentQueue<std::function<void()>>`；提交路径不使用 `std::mutex` / `std::condition_variable`
+- 阻塞：`waitAll()`、`stop()`、`stopNow()` 仍会阻塞调用线程，不是 coroutine awaitable
 
 ### `TaskWaiter`
 
 - `addTask(ThreadPool&, F&&)`
 - `wait()`
 - `waitFor(timeout)`
-
-### `ThreadSafeList<T>`
-
-- `pushFront` / `pushBack`
-- `popFront` / `popBack`
-- `remove(Node*)`
-- `size()` / `empty()` / `clear()`
+- 实现：使用原子计数和 `atomic::wait/notify_all` 等待，不再使用 mutex/condition_variable
 
 ### `PoolableObject` / `IsPoolable<T>`
 
@@ -315,7 +311,7 @@
 依赖边界：
 
 - 该头文件仅依赖标准库
-- 不再提供异步限流器，不再依赖 `galay-kernel` 或 `concurrentqueue/moodycamel`
+- 不再提供异步限流器，不再依赖 `galay-kernel`；`concurrentqueue/moodycamel` 仅用于线程池任务队列
 - `SlidingWindowLimiter` 内部使用互斥锁保护窗口队列；不要把限流器当作 coroutine awaitable 使用
 
 ### `CircuitBreaker`

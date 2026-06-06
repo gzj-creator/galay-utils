@@ -185,7 +185,6 @@ Clarify blocking behavior and shutdown semantics for thread-owning and mutex/con
 
 - Add tests for `ThreadPool` zero-thread construction, task exception propagation, `stop()`, `stopNow()`, `waitAll()`, `pendingTasks()`, and add-after-stop behavior.
 - Add tests for `TaskWaiter` wait success, timeout, and task exception not causing permanent wait.
-- Add tests for `ThreadSafeList` remove invalid/null node if supported, clear idempotence, FIFO/LIFO behavior, and size under sequential operations.
 - Add tests for `ObjectPool` creator/destroyer behavior, reset behavior, max size behavior, shrink/clear, and object reuse.
 - Add tests for `BlockingObjectPool` timeout, release wakeup, and destructor behavior under no waiters.
 - Replace sleep-based tests with bounded waits on observable state.

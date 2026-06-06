@@ -2,16 +2,15 @@
 #define GALAY_UTILS_THREAD_HPP
 
 #include "galay-utils/common/defn.hpp"
+#include <concurrentqueue/moodycamel/blockingconcurrentqueue.h>
+#include <chrono>
 #include <thread>
 #include <vector>
-#include <queue>
 #include <functional>
 #include <future>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
 #include <memory>
-#include <optional>
+#include <stdexcept>
 
 namespace galay::utils {
 
@@ -21,13 +20,13 @@ namespace galay::utils {
  * @author galay-utils
  * @version 1.0.0
  *
- * @details 提供高性能线程池（ThreadPool）、任务等待器（TaskWaiter）、
- *          线程安全双向链表（ThreadSafeList）等并发工具。
+ * @details 提供高性能线程池（ThreadPool）和任务等待器（TaskWaiter）等并发工具。
  */
 
 /**
  * @brief 高性能线程池
- * @details 支持任务提交、带返回值的异步任务、优雅停止和任务等待。
+ * @details 使用 moodycamel::BlockingConcurrentQueue 传递任务，提交路径不使用互斥锁或条件变量；
+ *          waitAll()/stop()/stopNow() 仍是阻塞线程 API。
  */
 class ThreadPool {
 public:
@@ -70,15 +69,10 @@ public:
 
         std::future<ReturnType> result = task->get_future();
 
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            if (m_stopped) {
-                throw std::runtime_error("ThreadPool is stopped");
-            }
-            m_tasks.emplace([task]() { (*task)(); });
+        if (!enqueueTask([task]() { (*task)(); })) {
+            throw std::runtime_error("ThreadPool is stopped");
         }
 
-        m_cv.notify_one();
         return result;
     }
 
@@ -89,14 +83,7 @@ public:
      */
     template<typename F>
     void execute(F&& f) {
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            if (m_stopped) {
-                return;
-            }
-            m_tasks.emplace(std::forward<F>(f));
-        }
-        m_cv.notify_one();
+        (void)enqueueTask(std::function<void()>(std::forward<F>(f)));
     }
 
     size_t threadCount() const { return m_workers.size(); } ///< 获取线程数量
@@ -106,8 +93,7 @@ public:
      * @return 待处理任务数量
      */
     size_t pendingTasks() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_tasks.size();
+        return m_pendingTasks.load(std::memory_order_acquire);
     }
 
     bool isStopped() const { return m_stopped; } ///< 判断线程池是否已停止
@@ -117,25 +103,25 @@ public:
      * @warning 会阻塞当前线程，不要在协程中使用
      */
     void waitAll() {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_completionCv.wait(lock, [this] {
-            return m_tasks.empty() && m_activeTasks == 0;
-        });
+        size_t unfinished = m_unfinishedTasks.load(std::memory_order_acquire);
+        while (unfinished != 0) {
+            m_unfinishedTasks.wait(unfinished, std::memory_order_acquire);
+            unfinished = m_unfinishedTasks.load(std::memory_order_acquire);
+        }
     }
 
     /**
      * @brief 优雅停止线程池（等待所有任务完成后停止）
      */
     void stop() {
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            if (m_stopped) {
-                return;
-            }
-            m_stopped = true;
+        if (m_stopped.exchange(true, std::memory_order_acq_rel)) {
+            return;
         }
 
-        m_cv.notify_all();
+        m_accepting.store(false, std::memory_order_release);
+        waitForSubmitters();
+        waitAll();
+        enqueueStopSignals();
 
         for (auto& worker : m_workers) {
             if (worker.joinable()) {
@@ -148,14 +134,22 @@ public:
      * @brief 立即停止线程池（丢弃所有未完成任务）
      */
     void stopNow() {
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_stopped = true;
-            std::queue<std::function<void()>> empty;
-            std::swap(m_tasks, empty);
+        if (m_stopped.exchange(true, std::memory_order_acq_rel)) {
+            return;
         }
 
-        m_cv.notify_all();
+        m_accepting.store(false, std::memory_order_release);
+        waitForSubmitters();
+
+        std::function<void()> discarded;
+        while (m_tasks.try_dequeue(discarded)) {
+            if (discarded) {
+                m_pendingTasks.fetch_sub(1, std::memory_order_acq_rel);
+                finishQueuedTask();
+            }
+        }
+
+        enqueueStopSignals();
 
         for (auto& worker : m_workers) {
             if (worker.joinable()) {
@@ -165,41 +159,104 @@ public:
     }
 
 private:
+    bool beginSubmit() {
+        while (true) {
+            if (!m_accepting.load(std::memory_order_acquire)) {
+                return false;
+            }
+
+            m_submitters.fetch_add(1, std::memory_order_acq_rel);
+            if (m_accepting.load(std::memory_order_acquire)) {
+                return true;
+            }
+
+            endSubmit();
+        }
+    }
+
+    void endSubmit() {
+        if (m_submitters.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            m_submitters.notify_all();
+        }
+    }
+
+    void waitForSubmitters() {
+        size_t submitters = m_submitters.load(std::memory_order_acquire);
+        while (submitters != 0) {
+            m_submitters.wait(submitters, std::memory_order_acquire);
+            submitters = m_submitters.load(std::memory_order_acquire);
+        }
+    }
+
+    bool enqueueTask(std::function<void()> task) {
+        if (!beginSubmit()) {
+            return false;
+        }
+
+        m_pendingTasks.fetch_add(1, std::memory_order_acq_rel);
+        m_unfinishedTasks.fetch_add(1, std::memory_order_acq_rel);
+
+        const bool enqueued = m_tasks.enqueue(std::move(task));
+        endSubmit();
+
+        if (!enqueued) {
+            m_pendingTasks.fetch_sub(1, std::memory_order_acq_rel);
+            finishQueuedTask();
+            throw std::bad_alloc();
+        }
+
+        return true;
+    }
+
+    void enqueueStopSignals() {
+        for (size_t i = 0; i < m_workers.size(); ++i) {
+            (void)m_tasks.enqueue(std::function<void()>{});
+        }
+    }
+
+    void finishQueuedTask() {
+        if (m_unfinishedTasks.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            m_unfinishedTasks.notify_all();
+        }
+    }
+
+    void finishActiveTask() {
+        m_activeTasks.fetch_sub(1, std::memory_order_acq_rel);
+        finishQueuedTask();
+    }
+
     void workerLoop() {
         while (true) {
             std::function<void()> task;
+            m_tasks.wait_dequeue(task);
 
-            {
-                std::unique_lock<std::mutex> lock(m_mutex);
-                m_cv.wait(lock, [this] {
-                    return m_stopped || !m_tasks.empty();
-                });
-
-                if (m_stopped && m_tasks.empty()) {
+            if (!task) {
+                if (m_stopped.load(std::memory_order_acquire)) {
                     return;
                 }
-
-                if (!m_tasks.empty()) {
-                    task = std::move(m_tasks.front());
-                    m_tasks.pop();
-                    ++m_activeTasks;
-                }
+                continue;
             }
 
-            if (task) {
+            m_pendingTasks.fetch_sub(1, std::memory_order_acq_rel);
+            m_activeTasks.fetch_add(1, std::memory_order_acq_rel);
+
+            try {
                 task();
-                --m_activeTasks;
-                m_completionCv.notify_all();
+            } catch (...) {
+                finishActiveTask();
+                throw;
             }
+            finishActiveTask();
         }
     }
 
     std::vector<std::thread> m_workers;
-    std::queue<std::function<void()>> m_tasks;
-    mutable std::mutex m_mutex;
-    std::condition_variable m_cv;
-    std::condition_variable m_completionCv;
+    moodycamel::BlockingConcurrentQueue<std::function<void()>> m_tasks;
+    std::atomic<bool> m_accepting{true};
     std::atomic<bool> m_stopped{false};
+    std::atomic<size_t> m_submitters{0};
+    std::atomic<size_t> m_pendingTasks{0};
+    std::atomic<size_t> m_unfinishedTasks{0};
     std::atomic<size_t> m_activeTasks{0};
 };
 
@@ -219,16 +276,19 @@ public:
      */
     template<typename F>
     void addTask(ThreadPool& pool, F&& f) {
-        ++m_count;
-        pool.execute([this, func = std::forward<F>(f)]() {
-            try {
-                func();
-            } catch (...) {
-            }
-            if (--m_count == 0) {
-                m_cv.notify_all();
-            }
-        });
+        m_count.fetch_add(1, std::memory_order_acq_rel);
+        try {
+            (void)pool.addTask([this, func = std::forward<F>(f)]() {
+                try {
+                    func();
+                } catch (...) {
+                }
+                finishOne();
+            });
+        } catch (...) {
+            finishOne();
+            throw;
+        }
     }
 
     /**
@@ -236,8 +296,11 @@ public:
      * @warning 会阻塞当前线程，不要在协程中使用
      */
     void wait() {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_cv.wait(lock, [this] { return m_count == 0; });
+        size_t count = m_count.load(std::memory_order_acquire);
+        while (count != 0) {
+            m_count.wait(count, std::memory_order_acquire);
+            count = m_count.load(std::memory_order_acquire);
+        }
     }
 
     /**
@@ -246,204 +309,24 @@ public:
      */
     template<typename Rep, typename Period>
     bool waitFor(const std::chrono::duration<Rep, Period>& timeout) {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        return m_cv.wait_for(lock, timeout, [this] { return m_count == 0; });
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        while (m_count.load(std::memory_order_acquire) != 0) {
+            if (std::chrono::steady_clock::now() >= deadline) {
+                return false;
+            }
+            std::this_thread::yield();
+        }
+        return true;
     }
 
 private:
+    void finishOne() {
+        if (m_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+            m_count.notify_all();
+        }
+    }
+
     std::atomic<size_t> m_count;
-    std::mutex m_mutex;
-    std::condition_variable m_cv;
-};
-
-/**
- * @brief 线程安全双向链表节点
- * @tparam T 数据类型
- */
-template<typename T>
-struct ListNode {
-    T data;
-    ListNode<T>* prev = nullptr;
-    ListNode<T>* next = nullptr;
-
-    explicit ListNode(T value) : data(std::move(value)) {}
-};
-
-/**
- * @brief 线程安全双向链表
- * @details 使用互斥锁保护所有操作，支持头尾插入、删除和清空。
- * @tparam T 数据类型
- */
-template<typename T>
-class ThreadSafeList {
-public:
-    using Node = ListNode<T>;
-
-    ThreadSafeList() = default;
-
-    ~ThreadSafeList() {
-        clear();
-    }
-
-    ThreadSafeList(const ThreadSafeList&) = delete;
-    ThreadSafeList& operator=(const ThreadSafeList&) = delete;
-
-    /**
-     * @brief 在链表头部插入元素
-     * @param value 插入的值
-     * @return 新节点指针
-     */
-    Node* pushFront(T value) {
-        auto node = new Node(std::move(value));
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        node->next = m_head;
-        if (m_head) {
-            m_head->prev = node;
-        }
-        m_head = node;
-        if (!m_tail) {
-            m_tail = node;
-        }
-        ++m_size;
-
-        return node;
-    }
-
-    /**
-     * @brief 在链表尾部插入元素
-     * @param value 插入的值
-     * @return 新节点指针
-     */
-    Node* pushBack(T value) {
-        auto node = new Node(std::move(value));
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        node->prev = m_tail;
-        if (m_tail) {
-            m_tail->next = node;
-        }
-        m_tail = node;
-        if (!m_head) {
-            m_head = node;
-        }
-        ++m_size;
-
-        return node;
-    }
-
-    /**
-     * @brief 弹出链表头部元素
-     * @return 弹出的值，链表为空时返回 std::nullopt
-     */
-    std::optional<T> popFront() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        if (!m_head) {
-            return std::nullopt;
-        }
-
-        Node* node = m_head;
-        T value = std::move(node->data);
-        m_head = m_head->next;
-        if (m_head) {
-            m_head->prev = nullptr;
-        } else {
-            m_tail = nullptr;
-        }
-        --m_size;
-        delete node;
-
-        return value;
-    }
-
-    /**
-     * @brief 弹出链表尾部元素
-     * @return 弹出的值，链表为空时返回 std::nullopt
-     */
-    std::optional<T> popBack() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        if (!m_tail) {
-            return std::nullopt;
-        }
-
-        Node* node = m_tail;
-        T value = std::move(node->data);
-        m_tail = m_tail->prev;
-        if (m_tail) {
-            m_tail->next = nullptr;
-        } else {
-            m_head = nullptr;
-        }
-        --m_size;
-        delete node;
-
-        return value;
-    }
-
-    /**
-     * @brief 移除指定节点
-     * @param node 目标节点指针
-     */
-    void remove(Node* node) {
-        if (!node) return;
-
-        std::lock_guard<std::mutex> lock(m_mutex);
-
-        if (node->prev) {
-            node->prev->next = node->next;
-        } else {
-            m_head = node->next;
-        }
-
-        if (node->next) {
-            node->next->prev = node->prev;
-        } else {
-            m_tail = node->prev;
-        }
-
-        --m_size;
-        delete node;
-    }
-
-    /**
-     * @brief 获取链表大小
-     * @return 元素数量
-     */
-    size_t size() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_size;
-    }
-
-    /**
-     * @brief 判断链表是否为空
-     * @return 为空返回 true
-     */
-    bool empty() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        return m_size == 0;
-    }
-
-    /**
-     * @brief 清空链表
-     */
-    void clear() {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        while (m_head) {
-            Node* next = m_head->next;
-            delete m_head;
-            m_head = next;
-        }
-        m_tail = nullptr;
-        m_size = 0;
-    }
-
-private:
-    mutable std::mutex m_mutex;
-    Node* m_head = nullptr;
-    Node* m_tail = nullptr;
-    size_t m_size = 0;
 };
 
 } // namespace galay::utils

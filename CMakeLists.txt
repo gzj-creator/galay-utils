@@ -36,11 +36,94 @@ include(CTest)
 # Header-only library
 add_library(galay-utils INTERFACE)
 
+set(GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR "" CACHE PATH
+    "Directory containing concurrentqueue/moodycamel/concurrentqueue.h")
+
+set(_GALAY_UTILS_CONCURRENTQUEUE_HINTS
+    "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}"
+    /opt/homebrew/include
+    /usr/local/include
+    /usr/include
+)
+
+if(NOT GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR)
+    unset(GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR CACHE)
+    find_path(GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR
+        NAMES
+            concurrentqueue/moodycamel/concurrentqueue.h
+            concurrentqueue/moodycamel/blockingconcurrentqueue.h
+        HINTS
+            /opt/homebrew/include
+            /usr/local/include
+            /usr/include
+    )
+endif()
+
+if(NOT GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR)
+    find_path(_GALAY_UTILS_CONCURRENTQUEUE_PACKAGE_DIR
+        NAMES
+            moodycamel/concurrentqueue.h
+            moodycamel/blockingconcurrentqueue.h
+        HINTS ${_GALAY_UTILS_CONCURRENTQUEUE_HINTS}
+        PATH_SUFFIXES concurrentqueue
+    )
+    if(_GALAY_UTILS_CONCURRENTQUEUE_PACKAGE_DIR)
+        get_filename_component(
+            GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR
+            "${_GALAY_UTILS_CONCURRENTQUEUE_PACKAGE_DIR}"
+            DIRECTORY
+        )
+        set(GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR
+            "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}"
+            CACHE PATH "Directory containing concurrentqueue/moodycamel/concurrentqueue.h"
+            FORCE
+        )
+    endif()
+endif()
+
+if(GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR
+   AND EXISTS "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}/moodycamel/concurrentqueue.h"
+   AND NOT EXISTS "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}/concurrentqueue/moodycamel/concurrentqueue.h")
+    get_filename_component(
+        GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR
+        "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}"
+        DIRECTORY
+    )
+    set(GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR
+        "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}"
+        CACHE PATH "Directory containing concurrentqueue/moodycamel/concurrentqueue.h"
+        FORCE
+    )
+endif()
+
+if(NOT GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR)
+    message(FATAL_ERROR
+        "concurrentqueue headers not found. Set GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR "
+        "to the include prefix containing concurrentqueue/moodycamel/concurrentqueue.h")
+endif()
+
+if(NOT EXISTS "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}/concurrentqueue/moodycamel/concurrentqueue.h"
+   OR NOT EXISTS "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}/concurrentqueue/moodycamel/blockingconcurrentqueue.h")
+    message(FATAL_ERROR
+        "GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR must contain "
+        "concurrentqueue/moodycamel/concurrentqueue.h and "
+        "concurrentqueue/moodycamel/blockingconcurrentqueue.h")
+endif()
+
+if(NOT TARGET concurrentqueue::concurrentqueue)
+    add_library(concurrentqueue::concurrentqueue INTERFACE IMPORTED GLOBAL)
+    set_target_properties(concurrentqueue::concurrentqueue PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${GALAY_UTILS_CONCURRENTQUEUE_INCLUDE_DIR}"
+    )
+endif()
+
 target_include_directories(galay-utils
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<INSTALL_INTERFACE:include>
 )
+
+target_link_libraries(galay-utils INTERFACE concurrentqueue::concurrentqueue)
 
 # Platform-specific settings
 if(UNIX)
