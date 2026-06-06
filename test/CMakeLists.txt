@@ -7,11 +7,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Add parent directory for includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-# Test executable
-add_executable(test_all test_all.cpp)
+set(GALAY_UTILS_TEST_GROUPS
+    algorithm/algorithm_test.cpp
+    app/app_test.cpp
+    buffer/buffer_test.cpp
+    cache/cache_test.cpp
+    concurrency/concurrency_test.cpp
+    core/core_test.cpp
+    data/data_test.cpp
+    platform/platform_test.cpp
+    resilience/resilience_test.cpp
+    routing/routing_test.cpp
+)
 
-target_link_libraries(test_all PRIVATE galay-utils)
-add_test(NAME AllTests COMMAND test_all)
+foreach(test_source IN LISTS GALAY_UTILS_TEST_GROUPS)
+    get_filename_component(test_name "${test_source}" NAME_WE)
+    add_executable("${test_name}" "${test_source}")
+    target_link_libraries("${test_name}" PRIVATE galay-utils)
+    add_test(NAME "${test_name}" COMMAND "${test_name}")
+endforeach()
 
 if(BUILD_MODULE_TESTS AND TARGET galay-utils-modules)
     add_executable(test_import_smoke import_smoke.cpp)

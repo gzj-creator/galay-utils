@@ -46,7 +46,7 @@ If a future task needs timing-wheel behavior in `galay-utils`, implement a new d
 
 **Files:**
 - Modify: `galay-utils/cache/lru_cache.hpp`
-- Modify: `test/test_all.cpp`
+- Modify: `test/cache/cache_test.cpp`
 - Optional Modify: `benchmark/lru_cache_benchmark.cpp`
 - Optional Docs: `docs/02-API参考.md`, `docs/03-使用指南.md`
 
@@ -75,10 +75,10 @@ Improve the existing `LruCache` API while preserving non-thread-safe, no-backgro
 ## Plan 2: Time Utility Primitives
 
 **Files:**
-- Create: `galay-utils/time/time.hpp`
+- Create: `galay-utils/core/time.hpp`
 - Modify: `galay-utils/galay_utils.hpp`
 - Modify: `galay-utils/module/galay_utils.cppm`
-- Modify: `test/test_all.cpp`
+- Modify: `test/core/core_test.cpp`
 
 **Scope:**
 
@@ -110,7 +110,7 @@ Also move generic timestamp and formatting helpers out of `System` so time APIs 
 - Create: `galay-utils/buffer/byte_queue_view.hpp`
 - Modify: `galay-utils/galay_utils.hpp`
 - Modify: `galay-utils/module/galay_utils.cppm`
-- Modify: `test/test_all.cpp`
+- Modify: `test/buffer/buffer_test.cpp`
 - Source reference only: `/Users/gongzhijie/Desktop/projects/git/galay-kernel/galay-kernel/common/queue_view.h`
 
 **Scope:**
@@ -138,7 +138,7 @@ Move the dependency-light byte queue concept into `galay-utils` as a parser/netw
 - Optional Create: `galay-utils/buffer/ring_buffer_iovec.hpp`
 - Modify: `galay-utils/galay_utils.hpp`
 - Modify: `galay-utils/module/galay_utils.cppm`
-- Modify: `test/test_all.cpp`
+- Modify: `test/buffer/buffer_test.cpp`
 - Optional Modify: `benchmark/ring_buffer_benchmark.cpp`
 - Source reference only: `/Users/gongzhijie/Desktop/projects/git/galay-kernel/galay-kernel/common/buffer.h`
 

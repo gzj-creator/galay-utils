@@ -50,7 +50,7 @@ The value pointer returned by `get` remains valid until the cache is mutated in 
 
 ## Testing
 
-Add focused assertions to `test/test_all.cpp`:
+Add focused assertions to `test/cache/cache_test.cpp`:
 
 - capacity-based LRU eviction
 - `get` refreshes recency

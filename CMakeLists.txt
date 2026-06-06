@@ -125,7 +125,9 @@ endif()
 
 install(DIRECTORY galay-utils/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/galay-utils
-    FILES_MATCHING PATTERN "*.hpp"
+    FILES_MATCHING
+        PATTERN "*.hpp"
+        PATTERN "*.inl"
 )
 
 install(EXPORT galay-utils-targets

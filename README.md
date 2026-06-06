@@ -14,21 +14,22 @@
 | 基线 CMake | `3.16+` |
 | 导出 target | `galay-utils`（INTERFACE）；满足条件时额外生成 `galay-utils-modules` |
 | 真实示例 | `E1-BasicUsage`；满足模块条件时额外生成 `E1-BasicUsageImport` |
-| 真实 benchmark | 当前无受版本控制的 benchmark 目录或 target |
-| 真实测试 | `test/test_all.cpp` → target `test_all`；可选模块烟雾测试 `test_import_smoke` |
+| 真实 benchmark | `benchmark/` 下提供 LRU、ByteQueueView、RingBuffer benchmark；`BUILD_BENCHMARKS=OFF` 默认不构建 |
+| 真实测试 | `test/<area>/*_test.cpp` → 多个 CTest target；可选模块烟雾测试 `test_import_smoke` |
 | Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
 | 额外头依赖 | 无 `galay-kernel` / `concurrentqueue` 依赖；限流器仅提供同步 `tryAcquire` 接口 |
 | 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
 ## 模块概览
 
-- 核心工具：`StringUtils`、`Randomizer`、`System`、`BackTrace`、`SignalHandler`
+- 核心工具：`StringUtils`、`RandomGenerator`、`Randomizer`、`Time`、`TypeName`
+- 平台工具：`System`、`BackTrace`、`SignalHandler`、`Process`
 - 并发与资源：`ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>`、`ObjectPool<T>`、`BlockingObjectPool<T>`
 - 流控与容错：`CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter`、`CircuitBreaker`
 - 路由与分布式：`RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>`、`ConsistentHash`
 - 数据结构：`TrieTree`、`Mvcc<T>`、`Snapshot`、`Transaction<T>`、`Huffman*`
-- 应用与系统：`App` / `Cmd` / `Arg`、`ConfigParser`、`IniParser`、`EnvParser`、`TomlParser`、`ParserManager`、`Process`
-- 算法：`Base64Util`、`MD5Util`、`MurmurHash3Util`、`SaltGenerator`、`SHA256`、`HMAC`
+- 应用与配置：`App` / `Cmd` / `Arg`、`ConfigParser`、`IniParser`、`EnvParser`、`TomlParser`、`ParserManager`
+- 编码与加密：`Base64Util`、`MD5Util`、`MurmurHash3Util`、`SaltGenerator`、`SHA256`、`HMAC`
 
 ## 快速开始
 
@@ -84,7 +85,7 @@ cmake --build build-examples --target E1-BasicUsage --parallel
 
 - 编译器支持 C++23
 - CMake `>= 3.16`
-- `test/test_all.cpp` 包含 umbrella header，并额外直接包含 `ratelimiter/limiter.hpp`
+- `test/` 按模块组拆分为多个 `*_test` target；`resilience_test` 会额外直接包含限流器头
 - 无需安装 `galay-kernel` 或 `concurrentqueue`
 
 ```bash
@@ -93,7 +94,7 @@ cmake -S . -B build-test \
   -DBUILD_EXAMPLES=OFF \
   -DBUILD_TESTING=ON
 
-cmake --build build-test --target test_all --parallel
+cmake --build build-test --parallel
 ctest --test-dir build-test --output-on-failure
 ```
 
@@ -110,7 +111,7 @@ ctest --test-dir build-test --output-on-failure
 - `Ninja` 或 `Visual Studio` 生成器
 - 非 `AppleClang`
 - 可用的 C++23 模块扫描工具链
-- 当前模块烟雾测试只验证 `StringUtils` 与 `System` 的导入面
+- 当前模块烟雾测试覆盖 core、platform、cache、buffer、concurrency、resilience、routing、data、app/config、encoding/crypto 的基础导入面；限流器仍通过细粒度头显式包含
 
 ```bash
 cmake -S . -B build-mod -G Ninja \
@@ -141,16 +142,16 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 
 ### 头文件选择建议
 
-- 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/string/string.hpp`
-- 只有在需要限流器家族时，再额外包含 `galay-utils/ratelimiter/limiter.hpp`
+- 只用字符串/系统/随机等轻量模块时，优先直接包含对应头文件，例如 `galay-utils/core/string.hpp`
+- 只有在需要限流器家族时，再额外包含 `galay-utils/resilience/rate_limiter.hpp`
 - 只有在工具链满足模块要求时，再使用 `import galay.utils;`
 
 ## 依赖边界
 
 - `galay-utils` 是接口库，公开头不再依赖 `galay-kernel`
-- `galay-utils/ratelimiter/limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
+- `galay-utils/resilience/rate_limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
 - 异步限流器和 `acquire()` awaitable 已移除；部分限流器内部带锁，不适合作为协程调度器上的 awaitable 使用
-- `test/test_all.cpp` 与 `test/import_smoke.cpp` 不再额外链接 `galay-kernel`
+- `test/<area>/*_test.cpp` 与 `test/import_smoke.cpp` 不再额外链接 `galay-kernel`
 
 ## 文档导航
 
@@ -168,7 +169,7 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 
 ## 已知限制
 
-- 当前仓库没有受版本控制的 `benchmark/` 目录；旧文档中的性能页仅保留“当前无 benchmark 资产”的边界说明
+- benchmark 默认不构建；需要时显式开启 `BUILD_BENCHMARKS=ON`
 - 默认 `BUILD_MODULE_TESTS=OFF`；验证模块导入时再显式传 `-DBUILD_MODULE_TESTS=ON`
 - 四个 `LoadBalancer` 的 `select()` 都返回 `std::optional<T>` 按值，不属于零拷贝 API
 - 只有 `RoundRobinLoadBalancer<T>::select()` 在节点集合不再变更时适合并发共享；并发 `append()` 以及其余三种 balancer 的共享实例都需要外部同步
