@@ -24,6 +24,7 @@
 
 - 核心工具：`StringUtils`、`RandomGenerator`、`Randomizer`、`Time`、`TypeName`
 - 平台工具：`System`、`BackTrace`、`SignalHandler`、`Process`
+- 缓存与缓冲：`LruCache`、`ByteQueueView`、`RingBuffer`
 - 并发与资源：`ThreadPool`、`TaskWaiter`、`ObjectPool<T>`、`BlockingObjectPool<T>`
 - 流控与容错：`CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter`、`CircuitBreaker`
 - 路由与分布式：`RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>`、`ConsistentHash`

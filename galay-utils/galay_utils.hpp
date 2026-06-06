@@ -37,13 +37,13 @@
 #include "galay-utils/tool/pool.hpp"
 
 /// LRU 缓存
-#include "galay-utils/tool/lru_cache.hpp"
+#include "galay-utils/cache/lru_cache.hpp"
 
 /// 字节队列视图
-#include "galay-utils/tool/byte_queue_view.hpp"
+#include "galay-utils/cache/byte_queue_view.hpp"
 
 /// 环形缓冲区
-#include "galay-utils/tool/ring_buffer.hpp"
+#include "galay-utils/cache/ring_buffer.hpp"
 
 /// 线程池
 #include "galay-utils/tool/thread.hpp"

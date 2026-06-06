@@ -8,8 +8,8 @@
  *          头部消费，并在已消费区域较大时原地压缩。非线程安全。
  */
 
-#ifndef GALAY_UTILS_BUFFER_BYTE_QUEUE_VIEW_HPP
-#define GALAY_UTILS_BUFFER_BYTE_QUEUE_VIEW_HPP
+#ifndef GALAY_UTILS_CACHE_BYTE_QUEUE_VIEW_HPP
+#define GALAY_UTILS_CACHE_BYTE_QUEUE_VIEW_HPP
 
 #include <cstddef>
 #include <cstring>
@@ -180,4 +180,4 @@ private:
 
 } // namespace galay::utils
 
-#endif // GALAY_UTILS_BUFFER_BYTE_QUEUE_VIEW_HPP
+#endif // GALAY_UTILS_CACHE_BYTE_QUEUE_VIEW_HPP

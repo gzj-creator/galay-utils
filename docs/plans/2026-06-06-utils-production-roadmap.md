@@ -45,7 +45,7 @@ If a future task needs timing-wheel behavior in `galay-utils`, implement a new d
 ## Plan 1: LRU Cache Production Hardening
 
 **Files:**
-- Modify: `galay-utils/tool/lru_cache.hpp`
+- Modify: `galay-utils/cache/lru_cache.hpp`
 - Modify: `test/cache/cache_test.cpp`
 - Optional Modify: `benchmark/lru_cache_benchmark.cpp`
 - Optional Docs: `docs/02-API参考.md`, `docs/03-使用指南.md`
@@ -107,7 +107,7 @@ Also move generic timestamp and formatting helpers out of `System` so time APIs 
 ## Plan 3: ByteQueueView Migration
 
 **Files:**
-- Create: `galay-utils/tool/byte_queue_view.hpp`
+- Create: `galay-utils/cache/byte_queue_view.hpp`
 - Modify: `galay-utils/galay_utils.hpp`
 - Modify: `galay-utils/module/galay_utils.cppm`
 - Modify: `test/buffer/buffer_test.cpp`
@@ -134,7 +134,7 @@ Move the dependency-light byte queue concept into `galay-utils` as a parser/netw
 ## Plan 4: RingBuffer Utility Migration
 
 **Files:**
-- Create: `galay-utils/tool/ring_buffer.hpp`
+- Create: `galay-utils/cache/ring_buffer.hpp`
 - Optional Create: `galay-utils/tool/ring_buffer_iovec.hpp`
 - Modify: `galay-utils/galay_utils.hpp`
 - Modify: `galay-utils/module/galay_utils.cppm`

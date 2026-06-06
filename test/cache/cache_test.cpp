@@ -1,5 +1,13 @@
 #include "../test_common.hpp"
 
+#include <filesystem>
+
+void testCacheHeadersMovedToCache() {
+    const auto sourceRoot = std::filesystem::path(GALAY_UTILS_SOURCE_DIR);
+    assert(!std::filesystem::exists(sourceRoot / "galay-utils/tool/lru_cache.hpp"));
+    assert(std::filesystem::exists(sourceRoot / "galay-utils/cache/lru_cache.hpp"));
+}
+
 void testLruCache() {
     std::cout << "=== Testing LruCache ===" << std::endl;
 
@@ -422,6 +430,7 @@ void testLruCache() {
 int main() {
     std::cout << "\n=== cache_test ===" << std::endl;
     try {
+        testCacheHeadersMovedToCache();
         testLruCache();
         return 0;
     } catch (const std::exception& e) {

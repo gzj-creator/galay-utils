@@ -24,7 +24,9 @@ foreach(test_source IN LISTS GALAY_UTILS_TEST_GROUPS)
     get_filename_component(test_name "${test_source}" NAME_WE)
     add_executable("${test_name}" "${test_source}")
     target_link_libraries("${test_name}" PRIVATE galay-utils)
-    if(test_name STREQUAL "concurrency_test")
+    if(test_name STREQUAL "concurrency_test" OR
+       test_name STREQUAL "cache_test" OR
+       test_name STREQUAL "buffer_test")
         target_compile_definitions("${test_name}" PRIVATE
             GALAY_UTILS_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/.."
         )

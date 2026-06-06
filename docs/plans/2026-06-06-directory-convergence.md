@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Move public headers into `process/`, `tool/`, and `algorithm/` so the repository has fewer, clearer module directories.
+**Goal:** Move public headers into `process/`, `cache/`, `tool/`, and `algorithm/` so the repository has fewer, clearer module directories.
 
 **Architecture:** This is a public include-path migration with no compatibility headers. Each batch moves one semantic group, updates all direct includes, umbrella/module facades, tests, docs, examples, and benchmark includes, then verifies the build before continuing.
 
@@ -13,7 +13,7 @@
 ## Progress Ledger
 
 - [ ] Task 1: Move process-boundary headers into `galay-utils/process/`
-- [ ] Task 2: Move engineering tools into `galay-utils/tool/`
+- [ ] Task 2: Move cache/buffer helpers into `galay-utils/cache/` and engineering tools into `galay-utils/tool/`
 - [ ] Task 3: Move algorithms and data structures into `galay-utils/algorithm/`
 - [ ] Task 4: Update docs, roadmap, and import smoke coverage
 - [ ] Task 5: Full verification and stale-path audit
@@ -83,14 +83,14 @@ rtk proxy git diff --check
 
 Expected: build succeeds, `platform_test` passes, no whitespace errors.
 
-## Task 2: Move Engineering Tools
+## Task 2: Move Cache/Buffer Helpers and Engineering Tools
 
 **Files:**
-- Move: `galay-utils/tool/lru_cache.hpp` -> `galay-utils/tool/lru_cache.hpp`
+- Move: `galay-utils/tool/lru_cache.hpp` -> `galay-utils/cache/lru_cache.hpp`
 - Move: `galay-utils/concurrency/thread.hpp` -> `galay-utils/tool/thread.hpp`
 - Move: `galay-utils/concurrency/pool.hpp` -> `galay-utils/tool/pool.hpp`
-- Move: `galay-utils/tool/byte_queue_view.hpp` -> `galay-utils/tool/byte_queue_view.hpp`
-- Move: `galay-utils/tool/ring_buffer.hpp` -> `galay-utils/tool/ring_buffer.hpp`
+- Move: `galay-utils/tool/byte_queue_view.hpp` -> `galay-utils/cache/byte_queue_view.hpp`
+- Move: `galay-utils/tool/ring_buffer.hpp` -> `galay-utils/cache/ring_buffer.hpp`
 - Move: `galay-utils/tool/rate_limiter.hpp` -> `galay-utils/tool/rate_limiter.hpp`
 - Move: `galay-utils/tool/circuit_breaker.hpp` -> `galay-utils/tool/circuit_breaker.hpp`
 - Move: `galay-utils/tool/balancer.hpp` -> `galay-utils/tool/balancer.hpp`
@@ -100,11 +100,11 @@ Expected: build succeeds, `platform_test` passes, no whitespace errors.
 **Step 1: Move files**
 
 ```bash
-rtk git mv galay-utils/tool/lru_cache.hpp galay-utils/tool/lru_cache.hpp
+rtk git mv galay-utils/tool/lru_cache.hpp galay-utils/cache/lru_cache.hpp
 rtk git mv galay-utils/concurrency/thread.hpp galay-utils/tool/thread.hpp
 rtk git mv galay-utils/concurrency/pool.hpp galay-utils/tool/pool.hpp
-rtk git mv galay-utils/tool/byte_queue_view.hpp galay-utils/tool/byte_queue_view.hpp
-rtk git mv galay-utils/tool/ring_buffer.hpp galay-utils/tool/ring_buffer.hpp
+rtk git mv galay-utils/tool/byte_queue_view.hpp galay-utils/cache/byte_queue_view.hpp
+rtk git mv galay-utils/tool/ring_buffer.hpp galay-utils/cache/ring_buffer.hpp
 rtk git mv galay-utils/tool/rate_limiter.hpp galay-utils/tool/rate_limiter.hpp
 rtk git mv galay-utils/tool/circuit_breaker.hpp galay-utils/tool/circuit_breaker.hpp
 rtk git mv galay-utils/tool/balancer.hpp galay-utils/tool/balancer.hpp
@@ -115,11 +115,11 @@ rtk git mv galay-utils/tool/balancer.inl galay-utils/tool/balancer.inl
 
 Replace paths:
 
-- `galay-utils/tool/lru_cache.hpp` -> `galay-utils/tool/lru_cache.hpp`
+- `galay-utils/tool/lru_cache.hpp` -> `galay-utils/cache/lru_cache.hpp`
 - `galay-utils/concurrency/thread.hpp` -> `galay-utils/tool/thread.hpp`
 - `galay-utils/concurrency/pool.hpp` -> `galay-utils/tool/pool.hpp`
-- `galay-utils/tool/byte_queue_view.hpp` -> `galay-utils/tool/byte_queue_view.hpp`
-- `galay-utils/tool/ring_buffer.hpp` -> `galay-utils/tool/ring_buffer.hpp`
+- `galay-utils/tool/byte_queue_view.hpp` -> `galay-utils/cache/byte_queue_view.hpp`
+- `galay-utils/tool/ring_buffer.hpp` -> `galay-utils/cache/ring_buffer.hpp`
 - `galay-utils/tool/rate_limiter.hpp` -> `galay-utils/tool/rate_limiter.hpp`
 - `galay-utils/tool/circuit_breaker.hpp` -> `galay-utils/tool/circuit_breaker.hpp`
 - `galay-utils/tool/balancer.hpp` -> `galay-utils/tool/balancer.hpp`
@@ -211,6 +211,7 @@ Expected: all three groups pass.
 Ensure `docs/02-API参考.md` lists these canonical paths:
 
 - `galay-utils/process/*.hpp`
+- `galay-utils/cache/*.hpp`
 - `galay-utils/tool/*.hpp`
 - `galay-utils/algorithm/*.hpp`
 
@@ -228,6 +229,7 @@ Remove active API references to:
 Use these group names:
 
 - 进程与系统边界：`process/`
+- 缓存与缓冲：`cache/`
 - 工程工具与阻塞资源工具：`tool/`
 - 算法与数据结构：`algorithm/`
 
@@ -238,13 +240,14 @@ Do not keep `concurrency/` as a public include directory. Document `ThreadPool`,
 `test/import_smoke.cpp` should consume at least:
 
 - `System` or `Process` from process group
-- `LruCache`, `ByteQueueView`, `RingBuffer`, `CircuitBreaker`, `RoundRobinLoadBalancer` from tool group
+- `LruCache`, `ByteQueueView`, `RingBuffer` from cache group
+- `CircuitBreaker`, `RoundRobinLoadBalancer` from tool group
 - `ConsistentHash`, `TrieTree`, `Mvcc`, one Huffman type if already used from algorithm group
 
 **Step 4: Run docs/source scan**
 
 ```bash
-rtk proxy rg -n 'galay-utils/(platform|cache|buffer|resilience|routing|data)/' galay-utils test examples benchmark README.md docs
+rtk proxy rg -n 'galay-utils/(platform|buffer|resilience|routing|data)/' galay-utils test examples benchmark README.md docs
 ```
 
 Expected: no hits in source/tests/examples/benchmark/current API docs. Historical release notes or explicit migration discussion may remain only if clearly historical.

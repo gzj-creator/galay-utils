@@ -1,5 +1,15 @@
 #include "../test_common.hpp"
 
+#include <filesystem>
+
+void testBufferHeadersMovedToCache() {
+    const auto sourceRoot = std::filesystem::path(GALAY_UTILS_SOURCE_DIR);
+    assert(!std::filesystem::exists(sourceRoot / "galay-utils/tool/byte_queue_view.hpp"));
+    assert(!std::filesystem::exists(sourceRoot / "galay-utils/tool/ring_buffer.hpp"));
+    assert(std::filesystem::exists(sourceRoot / "galay-utils/cache/byte_queue_view.hpp"));
+    assert(std::filesystem::exists(sourceRoot / "galay-utils/cache/ring_buffer.hpp"));
+}
+
 void testByteQueueView() {
     std::cout << "=== Testing ByteQueueView ===" << std::endl;
 
@@ -201,6 +211,7 @@ void testRingBuffer() {
 int main() {
     std::cout << "\n=== buffer_test ===" << std::endl;
     try {
+        testBufferHeadersMovedToCache();
         testByteQueueView();
         testRingBuffer();
         return 0;

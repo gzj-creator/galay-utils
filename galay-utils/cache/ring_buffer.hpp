@@ -8,8 +8,8 @@
  *          核心接口使用 span；在 POSIX 平台额外提供 iovec 适配。
  */
 
-#ifndef GALAY_UTILS_BUFFER_RING_BUFFER_HPP
-#define GALAY_UTILS_BUFFER_RING_BUFFER_HPP
+#ifndef GALAY_UTILS_CACHE_RING_BUFFER_HPP
+#define GALAY_UTILS_CACHE_RING_BUFFER_HPP
 
 #include <algorithm>
 #include <array>
@@ -384,4 +384,4 @@ private:
 
 #undef GALAY_UTILS_RING_BUFFER_HAS_IOVEC
 
-#endif // GALAY_UTILS_BUFFER_RING_BUFFER_HPP
+#endif // GALAY_UTILS_CACHE_RING_BUFFER_HPP

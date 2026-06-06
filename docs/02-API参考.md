@@ -22,9 +22,9 @@
 - `galay-utils/process/signal.hpp`
 - `galay-utils/tool/thread.hpp`
 - `galay-utils/tool/pool.hpp`
-- `galay-utils/tool/lru_cache.hpp`
-- `galay-utils/tool/byte_queue_view.hpp`
-- `galay-utils/tool/ring_buffer.hpp`
+- `galay-utils/cache/lru_cache.hpp`
+- `galay-utils/cache/byte_queue_view.hpp`
+- `galay-utils/cache/ring_buffer.hpp`
 - `galay-utils/tool/rate_limiter.hpp`
 - `galay-utils/tool/circuit_breaker.hpp`
 - `galay-utils/tool/balancer.hpp`
@@ -173,9 +173,9 @@
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
-| Cache | `galay-utils/tool/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
-| ByteQueueView | `galay-utils/tool/byte_queue_view.hpp` | `ByteQueueView` |
-| RingBuffer | `galay-utils/tool/ring_buffer.hpp` | `RingBuffer` |
+| Cache | `galay-utils/cache/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
+| ByteQueueView | `galay-utils/cache/byte_queue_view.hpp` | `ByteQueueView` |
+| RingBuffer | `galay-utils/cache/ring_buffer.hpp` | `RingBuffer` |
 | Thread | `galay-utils/tool/thread.hpp` | `ThreadPool`、`TaskWaiter` |
 | Pool | `galay-utils/tool/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
 

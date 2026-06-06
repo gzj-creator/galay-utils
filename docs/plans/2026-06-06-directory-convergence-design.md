@@ -5,7 +5,8 @@
 收敛 galay-utils 当前仍偏分散的公开头文件目录，让使用者能按清晰心智选择模块：
 
 - `process/`：系统、进程、signal 和诊断边界。
-- `tool/`：工程工具、线程池、等待器、对象池、缓存、缓冲、流控、熔断和负载选择。
+- `cache/`：LRU 缓存、字节队列视图和环形缓冲。
+- `tool/`：工程工具、线程池、等待器、对象池、流控、熔断和负载选择。
 - `algorithm/`：算法和数据结构。
 
 本设计不保留兼容头。每次移动公开头文件，都必须同步更新 umbrella header、module facade、测试、文档和安装验证。
@@ -27,15 +28,25 @@
 - `BackTrace` 和 crash handler 也服务于进程诊断边界。
 - `System` 当前提供文件、目录、环境变量、主机信息等 OS convenience API，和进程边界一起归档更容易查找。
 
+### `cache/`
+
+目标职责：缓存与缓冲类工具。
+
+- `lru_cache.hpp`
+- `byte_queue_view.hpp`
+- `ring_buffer.hpp`
+
+理由：
+
+- `LruCache`、`ByteQueueView`、`RingBuffer` 都围绕数据驻留、缓存和缓冲区组织，单独目录比并入通用 `tool/` 更容易检索。
+- 这些类型保持无后台线程、无内部调度器语义；线程安全边界在 API 文档中说明。
+
 ### `tool/`
 
 目标职责：可直接组合到业务系统里的工程工具。
 
-- `lru_cache.hpp`
 - `thread.hpp`
 - `pool.hpp`
-- `byte_queue_view.hpp`
-- `ring_buffer.hpp`
 - `rate_limiter.hpp`
 - `circuit_breaker.hpp`
 - `balancer.hpp`
@@ -43,7 +54,6 @@
 
 理由：
 
-- `LruCache`、buffer、ring buffer 是工程常用工具，不属于纯算法接口。
 - `ThreadPool`、`TaskWaiter`、`ObjectPool`、`BlockingObjectPool` 是工程资源工具，阻塞语义在 API 文档中说明，而不再保留单独公开目录。
 - `RateLimiter`、`CircuitBreaker` 是运行期流控与保护工具。
 - `Balancer` 是节点选择工具，虽然有算法属性，但业务使用心智更接近流量工具。
@@ -111,7 +121,7 @@ rtk proxy rg -n 'galay-utils/(platform|resilience|routing|data|buffer|cache)/' g
 
 ## Open Decisions
 
-- `buffer/` 和 `cache/` 本设计迁入 `tool/`，减少目录数量。
+- `cache/` 保留为公开目录，承载 `LruCache`、`ByteQueueView` 与 `RingBuffer`。
 - `routing/` 不保留，`balancer` 进 `tool/`，`consistent_hash` 进 `algorithm/`。
 - `data/` 不保留，数据结构进入 `algorithm/`。
 - `concurrency/` 不保留公开头文件，线程池、等待器和对象池进入 `tool/`，阻塞语义通过 API 文档和高级主题说明。
