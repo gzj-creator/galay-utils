@@ -259,7 +259,10 @@ void testSystem() {
     std::cout << "  Current time: " << local << std::endl;
 
     // File operations
-    std::string testFile = "/tmp/galay_test_file.txt";
+    static std::atomic_uint64_t testPathCounter{0};
+    const std::string testSuffix = std::to_string(System::currentTimeNs()) + "_" +
+                                   std::to_string(testPathCounter.fetch_add(1));
+    std::string testFile = "/tmp/galay_test_file_" + testSuffix + ".txt";
     assert(System::writeFile(testFile, "Hello, World!"));
     assert(System::fileExists(testFile));
 
@@ -272,7 +275,7 @@ void testSystem() {
     assert(!System::fileExists(testFile));
 
     // Directory
-    std::string testDir = "/tmp/galay_test_dir";
+    std::string testDir = "/tmp/galay_test_dir_" + testSuffix;
     assert(System::createDirectory(testDir));
     assert(System::isDirectory(testDir));
     assert(System::remove(testDir));
@@ -308,6 +311,281 @@ void testSystem() {
     System::unsetEnv("GALAY_EMPTY_VAR");
 
     std::cout << "System tests passed!" << std::endl;
+}
+
+// ==================== Time Utility Tests ====================
+void testTimeUtilities() {
+    std::cout << "=== Testing Time Utilities ===" << std::endl;
+
+    ManualClock::reset();
+    StopWatch<ManualClock> watch;
+    ManualClock::advance(ManualClock::duration{25});
+    assert(watch.elapsed() == ManualClock::duration{25});
+    assert(watch.elapsedMs() == 25.0);
+
+    watch.reset();
+    assert(watch.startTime() == ManualClock::now());
+    ManualClock::advance(ManualClock::duration{7});
+    assert(watch.elapsed() == ManualClock::duration{7});
+
+    StopWatch<ManualClock> explicitWatch(ManualClock::time_point{ManualClock::duration{2}});
+    ManualClock::current = ManualClock::time_point{ManualClock::duration{9}};
+    assert(explicitWatch.elapsed() == ManualClock::duration{7});
+
+    ManualClock::reset();
+    auto deadline = Deadline<ManualClock>::fromNow(ManualClock::duration{10});
+    assert(deadline.timePoint() == ManualClock::now() + ManualClock::duration{10});
+    assert(!deadline.expired());
+    assert(deadline.remaining() == ManualClock::duration{10});
+    ManualClock::advance(ManualClock::duration{11});
+    assert(deadline.expired());
+    assert(deadline.remaining() == ManualClock::duration{0});
+
+    auto zeroDeadline = Deadline<ManualClock>::fromNow(ManualClock::duration{0});
+    assert(zeroDeadline.expired());
+
+    auto negativeDeadline = Deadline<ManualClock>::fromNow(ManualClock::duration{-1});
+    assert(negativeDeadline.expired());
+
+    using namespace std::chrono_literals;
+
+    auto fixed = Backoff::fixed(5ms);
+    assert(fixed.strategy() == Backoff::Strategy::Fixed);
+    assert(fixed.next() == 5ms);
+    assert(fixed.next() == 5ms);
+    assert(fixed.attempts() == 2);
+    fixed.reset();
+    assert(fixed.attempts() == 0);
+    assert(fixed.next() == 5ms);
+
+    auto linear = Backoff::linear(1ms, 2ms, 5ms);
+    assert(linear.next() == 1ms);
+    assert(linear.next() == 3ms);
+    assert(linear.next() == 5ms);
+    assert(linear.next() == 5ms);
+
+    auto cappedInitial = Backoff::linear(10ms, 1ms, 3ms);
+    assert(cappedInitial.next() == 3ms);
+
+    auto negativeLinear = Backoff::linear(-1ms, -2ms, 5ms);
+    assert(negativeLinear.next() == 0ms);
+    assert(negativeLinear.next() == 0ms);
+
+    auto exponential = Backoff::exponential(1ms, 2.0, 10ms);
+    assert(exponential.strategy() == Backoff::Strategy::Exponential);
+    assert(exponential.next() == 1ms);
+    assert(exponential.next() == 2ms);
+    assert(exponential.next() == 4ms);
+    assert(exponential.next() == 8ms);
+    assert(exponential.next() == 10ms);
+
+    auto flatExponential = Backoff::exponential(2ms, 0.5, 10ms);
+    assert(flatExponential.next() == 2ms);
+    assert(flatExponential.next() == 2ms);
+
+    auto zeroMax = Backoff::exponential(2ms, 2.0, 0ms);
+    assert(zeroMax.next() == 0ms);
+
+    auto zero = Backoff::fixed(-1ms);
+    assert(zero.next() == 0ms);
+
+    std::cout << "Time utility tests passed!" << std::endl;
+}
+
+// ==================== ByteQueueView Tests ====================
+void testByteQueueView() {
+    std::cout << "=== Testing ByteQueueView ===" << std::endl;
+
+    ByteQueueView queue;
+    assert(queue.empty());
+    assert(queue.size() == 0);
+    assert(queue.has(0));
+    assert(!queue.has(1));
+    assert(queue.data() == nullptr);
+    queue.append(nullptr, 4);
+    assert(queue.empty());
+    queue.append(std::span<const std::byte>{});
+    assert(queue.empty());
+
+    queue.append("hello", 5);
+    assert(!queue.empty());
+    assert(queue.size() == 5);
+    assert(queue.has(5));
+    assert(queue.data() != nullptr);
+    assert(queue.view(0, 2) == "he");
+    assert(queue.view(4, 2).empty());
+    assert(queue.view(0, 0).empty());
+
+    queue.consume(2);
+    assert(queue.size() == 3);
+    assert(queue.view(0, 3) == "llo");
+
+    queue.append(std::string_view(" world"));
+    assert(queue.view(0, queue.size()) == "llo world");
+
+    queue.consume(queue.size());
+    assert(queue.empty());
+    assert(queue.data() == nullptr);
+    queue.append("", 0);
+    assert(queue.empty());
+
+    std::array<std::byte, 3> bytes{
+        std::byte{'a'},
+        std::byte{'b'},
+        std::byte{'c'}
+    };
+    queue.append(std::span<const std::byte>(bytes.data(), bytes.size()));
+    assert(queue.view(0, queue.size()) == "abc");
+
+    queue.clear();
+    std::string large(5000, 'x');
+    queue.append(large);
+    queue.consume(4096);
+    assert(queue.size() == 904);
+    assert(queue.view(0, 3) == "xxx");
+
+    queue.append("tail", 4);
+    assert(queue.size() == 908);
+    assert(queue.view(904, 4) == "tail");
+
+    std::cout << "ByteQueueView tests passed!" << std::endl;
+}
+
+// ==================== RingBuffer Tests ====================
+void testRingBuffer() {
+    std::cout << "=== Testing RingBuffer ===" << std::endl;
+
+    {
+        bool thrown = false;
+        try {
+            RingBuffer invalid(0);
+        } catch (const std::invalid_argument&) {
+            thrown = true;
+        }
+        assert(thrown);
+    }
+
+    {
+        RingBuffer buffer(8);
+        assert(buffer.empty());
+        assert(!buffer.full());
+        assert(buffer.capacity() == 8);
+        assert(buffer.readable() == 0);
+        assert(buffer.writable() == 8);
+        assert(buffer.write(nullptr, 4) == 0);
+        assert(buffer.write("abc", 0) == 0);
+
+        char emptyOut[1]{};
+        assert(buffer.read(emptyOut, 0) == 0);
+        assert(buffer.read(nullptr, 1) == 0);
+
+        std::array<std::span<const std::byte>, 2> emptyReadSpans{};
+        assert(buffer.readSpans(emptyReadSpans) == 0);
+
+        assert(buffer.write("abcdef", 6) == 6);
+        assert(buffer.readable() == 6);
+        assert(buffer.writable() == 2);
+
+        char out[4]{};
+        assert(buffer.read(out, sizeof(out)) == 4);
+        assert(std::string(out, 4) == "abcd");
+        assert(buffer.readable() == 2);
+
+        assert(buffer.write("ghijkl", 6) == 6);
+        assert(buffer.full());
+
+        std::array<std::span<const std::byte>, 2> readSpans{};
+        const size_t readSpanCount = buffer.readSpans(readSpans);
+        assert(readSpanCount == 2);
+        assert(readSpans[0].size() == 4);
+        assert(readSpans[1].size() == 4);
+
+        char all[8]{};
+        assert(buffer.read(all, sizeof(all)) == 8);
+        assert(std::string(all, 8) == "efghijkl");
+        assert(buffer.empty());
+    }
+
+    {
+        RingBuffer buffer(4);
+
+        std::array<std::span<std::byte>, 2> writeSpans{};
+        const size_t writeSpanCount = buffer.writeSpans(writeSpans);
+        assert(writeSpanCount == 1);
+        assert(writeSpans[0].size() == 4);
+
+        std::memcpy(writeSpans[0].data(), "wxyz", 4);
+        buffer.produce(10);
+        assert(buffer.full());
+        assert(buffer.readable() == 4);
+
+        buffer.consume(10);
+        assert(buffer.empty());
+        assert(buffer.writable() == 4);
+    }
+
+#if defined(__unix__) || defined(__APPLE__)
+    {
+        RingBuffer buffer(8);
+
+        std::array<struct iovec, 2> writeIovecs{};
+        const size_t writeCount = buffer.getWriteIovecs(writeIovecs);
+        assert(writeCount == 1);
+        assert(writeIovecs[0].iov_len == 8);
+
+        std::memcpy(writeIovecs[0].iov_base, "abcdefgh", 8);
+        buffer.produce(6);
+        buffer.consume(4);
+        assert(buffer.write("ijklmn", 6) == 6);
+
+        std::array<struct iovec, 2> readIovecs{};
+        const size_t readCount = buffer.getReadIovecs(readIovecs);
+        assert(readCount == 2);
+        assert(readIovecs[0].iov_len == 4);
+        assert(readIovecs[1].iov_len == 4);
+
+        std::string merged;
+        merged.append(static_cast<const char*>(readIovecs[0].iov_base), readIovecs[0].iov_len);
+        merged.append(static_cast<const char*>(readIovecs[1].iov_base), readIovecs[1].iov_len);
+        assert(merged == "efijklmn");
+
+        assert(buffer.getReadIovecs(nullptr, 2) == 0);
+        assert(buffer.getReadIovecs(readIovecs.data(), 0) == 0);
+        assert(buffer.getWriteIovecs(nullptr, 2) == 0);
+        assert(buffer.getWriteIovecs(writeIovecs.data(), 0) == 0);
+        assert(buffer.full());
+        assert(buffer.getWriteIovecs(writeIovecs) == 0);
+    }
+#endif
+
+    {
+        RingBuffer buffer(5);
+        assert(buffer.write("abcde", 5) == 5);
+        assert(buffer.write("z", 1) == 0);
+
+        char out[3]{};
+        assert(buffer.read(out, sizeof(out)) == 3);
+        assert(std::string(out, 3) == "abc");
+
+        assert(buffer.write("fg", 2) == 2);
+
+        RingBuffer moved(std::move(buffer));
+        assert(moved.readable() == 4);
+        assert(buffer.empty());
+        assert(buffer.readable() == 0);
+        char movedOut[4]{};
+        assert(moved.read(movedOut, sizeof(movedOut)) == 4);
+        assert(std::string(movedOut, 4) == "defg");
+        assert(moved.empty());
+
+        RingBuffer assigned(3);
+        assert(assigned.write("xy", 2) == 2);
+        assigned = std::move(moved);
+        assert(assigned.empty());
+        assert(moved.empty());
+    }
+
+    std::cout << "RingBuffer tests passed!" << std::endl;
 }
 
 // ==================== BackTrace Tests ====================
@@ -2335,6 +2613,9 @@ int main() {
         testString();
         testRandom();
         testSystem();
+        testTimeUtilities();
+        testByteQueueView();
+        testRingBuffer();
         testBackTrace();
         testSignalHandler();
         testPool();

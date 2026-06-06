@@ -24,6 +24,9 @@
 /// 系统工具
 #include "galay-utils/system/system.hpp"
 
+/// 时间工具
+#include "galay-utils/time/time.hpp"
+
 /// 堆栈跟踪
 #include "backtrace/trace.hpp"
 
@@ -35,6 +38,12 @@
 
 /// LRU 缓存
 #include "galay-utils/cache/lru_cache.hpp"
+
+/// 字节队列视图
+#include "galay-utils/buffer/byte_queue_view.hpp"
+
+/// 环形缓冲区
+#include "galay-utils/buffer/ring_buffer.hpp"
 
 /// 线程池
 #include "thread/thread.hpp"

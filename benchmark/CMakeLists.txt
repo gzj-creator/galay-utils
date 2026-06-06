@@ -6,3 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(lru_cache_benchmark lru_cache_benchmark.cpp)
 target_link_libraries(lru_cache_benchmark PRIVATE galay-utils)
+
+add_executable(byte_queue_view_benchmark byte_queue_view_benchmark.cpp)
+target_link_libraries(byte_queue_view_benchmark PRIVATE galay-utils)
+
+add_executable(ring_buffer_benchmark ring_buffer_benchmark.cpp)
+target_link_libraries(ring_buffer_benchmark PRIVATE galay-utils)

@@ -10,6 +10,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - 新增非线程安全的通用 `LruCache`，支持容量 LRU 淘汰、惰性 TTL 淘汰、自定义哈希/比较器、淘汰回调和可选 expire-after-access。
 - 为 `LruCache` 增加可编译期开关控制的统计收集，默认关闭统计以减少容量缓存热路径开销。
 - 增加 LRU 单测和 benchmark，对比 LeetCode 常见 LRU 实现、默认容量模式、统计开启模式和 TTL 模式。
+- 新增轻量时间工具 `StopWatch`、`Deadline` 和 `Backoff`，保持无线程、无调度器、无阻塞语义。
+- 新增 `ByteQueueView` 与 `RingBuffer` 通用缓冲工具，覆盖流式解析、环绕读写、span 视图和 POSIX `iovec` 视图。
+- 增加 ByteQueueView、RingBuffer benchmark，并补充对应边界单测与压测文档。
+
+### Fixed
+- 修复 `test_all` 系统测试使用固定 `/tmp` 文件名导致并行运行时互相污染的问题。
 
 ## [v2.1.3] - 2026-05-24
 
