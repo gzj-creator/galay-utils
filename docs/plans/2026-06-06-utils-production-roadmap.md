@@ -83,12 +83,16 @@ Improve the existing `LruCache` API while preserving non-thread-safe, no-backgro
 **Scope:**
 
 Add lightweight time primitives that can be reused by cache, limiter, circuit breaker, and future utility modules.
+Also move generic timestamp and formatting helpers out of `System` so time APIs have one public home.
 
 **Implementation Checklist:**
 
 - Add `StopWatch<Clock>` with `elapsed()`, `elapsedMs()`, and `reset()`.
 - Add `Deadline<Clock>` with `expired()`, `remaining()`, and `fromNow(duration)`.
 - Add `Backoff` with fixed, linear, and exponential progression.
+- Add `Time::currentTimeMs/currentTimeUs/currentTimeNs`.
+- Add `Time::formatTime/currentGMTTime/currentLocalTime`.
+- Remove the corresponding timestamp and formatting APIs from `System`.
 - Keep all types non-owning and thread-neutral; no worker thread, no timer scheduler.
 - Add deterministic tests using a manual test clock where practical.
 
@@ -96,6 +100,7 @@ Add lightweight time primitives that can be reused by cache, limiter, circuit br
 
 - Time utilities compile as standalone headers.
 - Tests cover zero/negative durations, expired deadlines, reset behavior, and capped exponential backoff.
+- `System` no longer exposes time-related helpers; callers use `Time` instead.
 
 ---
 

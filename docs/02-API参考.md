@@ -16,11 +16,15 @@
 - `galay-utils/string/string.hpp`
 - `galay-utils/random/random.hpp`
 - `galay-utils/system/system.hpp`
+- `galay-utils/time/time.hpp`
 - `galay-utils/common/type_name.hpp`
 - `galay-utils/backtrace/trace.hpp`
 - `galay-utils/signal/signal.hpp`
 - `galay-utils/thread/thread.hpp`
 - `galay-utils/pool/pool.hpp`
+- `galay-utils/cache/lru_cache.hpp`
+- `galay-utils/buffer/byte_queue_view.hpp`
+- `galay-utils/buffer/ring_buffer.hpp`
 - `galay-utils/ratelimiter/limiter.hpp`
 - `galay-utils/circuitbreaker/breaker.hpp`
 - `galay-utils/balancer/balancer.hpp`
@@ -46,6 +50,7 @@
 |---|---|---|
 | String | `galay-utils/string/string.hpp` | `StringUtils` |
 | Random | `galay-utils/random/random.hpp` | `Randomizer` |
+| Time | `galay-utils/time/time.hpp` | `Time`、`StopWatch<Clock>`、`Deadline<Clock>`、`Backoff` |
 | System | `galay-utils/system/system.hpp` | `System`、`System::AddressType` |
 | TypeName | `galay-utils/common/type_name.hpp` | `getTypeName<T>()`、`getTypeName(obj)`、`demangleSymbol()` |
 | BackTrace | `galay-utils/backtrace/trace.hpp` | `BackTrace` |
@@ -77,15 +82,39 @@
 - `uuid()`
 - `seed()` / `reseed()`
 
+### `Time`
+
+- `Time::currentTimeMs()` / `Time::currentTimeUs()` / `Time::currentTimeNs()`
+- `Time::formatTime(std::time_t timestamp, const char* format, bool utc = false)`
+- `Time::currentGMTTime(const char* format = "%a, %d %b %Y %H:%M:%S GMT")`
+- `Time::currentLocalTime(const char* format = "%Y-%m-%d %H:%M:%S")`
+- `StopWatch<Clock>`
+  - `StopWatch()` / `explicit StopWatch(time_point start)`
+  - `reset()`
+  - `elapsed()` / `elapsedMs()`
+  - `startTime()`
+- `Deadline<Clock>`
+  - `explicit Deadline(time_point deadline)`
+  - `fromNow(duration)`
+  - `expired()` / `remaining()`
+  - `timePoint()`
+- `Backoff`
+  - `Backoff::fixed(duration)` / `Backoff::linear(initial, step, max)` / `Backoff::exponential(initial, multiplier, max)`
+  - `next()` / `reset()`
+  - `attempts()` / `strategy()`
+- 语义：
+  - `System` 不再提供 `currentTime*`、`currentGMTTime`、`currentLocalTime` 或 `formatTime`；时间相关能力统一使用 `Time`
+  - `formatTime(...)` 的 `format == nullptr`、平台时间转换失败或格式化结果写入失败时返回空字符串
+  - `StopWatch`、`Deadline`、`Backoff` 都是轻量非线程安全值对象，不创建线程，不提供 sleep 或调度语义
+
 ### `System`
 
-- 时间：`System::currentTimeMs` / `System::currentTimeUs` / `System::currentTimeNs`
-- 时间格式：`System::currentGMTTime` / `System::currentLocalTime` / `System::formatTime`
 - 文件：`System::readFile` / `System::writeFile` / `System::readFileMmap`
 - 文件系统：`System::fileExists` / `System::isDirectory` / `System::fileSize` / `System::createDirectory` / `System::remove` / `System::listDirectory`
 - 环境变量：`System::getEnv` / `System::setEnv` / `System::unsetEnv`
 - 网络：`System::resolveHostIPv4` / `System::resolveHostIPv6` / `System::checkAddressType`
 - 主机：`System::cpuCount` / `System::hostname` / `System::currentDir` / `System::changeDir` / `System::executablePath`
+- 语义：系统时间戳和时间格式化 API 已移至 `Time`
 
 ### `TypeName`
 
@@ -122,12 +151,65 @@
   - POSIX 下 `setHandler(...)` 使用 `sigaction(..., SA_RESTART, ...)` 注册进程级 signal handler
   - `blockSignal(...)` / `unblockSignal(...)` 在 POSIX 下通过 `pthread_sigmask(...)` 修改的是当前线程的 signal mask，而不是全局进程 mask
 
-## 3. 并发与资源
+## 3. 并发、缓存与缓冲
 
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
+| Cache | `galay-utils/cache/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
+| ByteQueueView | `galay-utils/buffer/byte_queue_view.hpp` | `ByteQueueView` |
+| RingBuffer | `galay-utils/buffer/ring_buffer.hpp` | `RingBuffer` |
 | Thread | `galay-utils/thread/thread.hpp` | `ThreadPool`、`TaskWaiter`、`ThreadSafeList<T>` |
 | Pool | `galay-utils/pool/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
+
+### `LruCache`
+
+- 模板参数：`Key`、`Value`、`Hash = std::hash<Key>`、`KeyEqual = std::equal_to<Key>`、`Clock = std::chrono::steady_clock`、`EnableStats = false`
+- 类型：
+  - `EvictReason`：`Capacity` / `Expired` / `Removed` / `Cleared`
+  - `ExpirationPolicy`：`ExpireAfterWrite` / `ExpireAfterAccess`
+  - `Stats`：`hits` / `misses` / `inserts` / `updates` / `capacityEvictions` / `expiredEvictions` / `removes` / `clears`
+  - `EvictCallback = std::function<void(const Key&, const Value&, EvictReason)>`
+- 构造：
+  - `LruCache(size_type capacity = 0, std::optional<duration> defaultTtl = std::nullopt, EvictCallback onEvict = nullptr, ExpirationPolicy expirationPolicy = ExpirationPolicy::ExpireAfterWrite)`
+  - `LruCache(size_type capacity, chrono duration defaultTtl, EvictCallback onEvict = nullptr, ExpirationPolicy expirationPolicy = ExpirationPolicy::ExpireAfterWrite)`
+- 写入：`put` / `putFor` / `putUntil` / `emplace` / `emplaceFor`
+- 查询：`get` / `peek` / `contains`
+- 管理：`remove` / `clear` / `size` / `empty` / `capacity` / `setCapacity` / `defaultTtl` / `setDefaultTtl` / `purgeExpired`
+- 哈希表调优：`reserve(size_type)` / `maxLoadFactor(float)` / `maxLoadFactor()`
+- 统计：`statsEnabled()` / `stats()` / `resetStats()`
+- 语义：
+  - 非线程安全；多线程或跨协程并发访问同一个实例时必须由调用方外部同步
+  - 容量淘汰和 TTL 淘汰都是惰性的，不创建后台线程或定时器
+  - 统计默认关闭；只有 `EnableStats = true` 的实例才在热路径累计计数
+  - 纯容量 LRU 未配置 TTL 条目时不访问 `Clock::now()`
+
+### `ByteQueueView`
+
+- `ByteQueueView()` / `explicit ByteQueueView(size_t reserveSize)`
+- `reserve(size_t capacity)`
+- `append(const char* data, size_t length)` / `append(std::string_view)` / `append(std::span<const std::byte>)`
+- `size()` / `empty()` / `has(size_t length)`
+- `data()`
+- `view(size_t offset, size_t length)`
+- `consume(size_t length)`
+- `clear()`
+- 语义：仅追加、头部消费的连续字节队列视图；已消费区域达到阈值后惰性压缩；非线程安全
+
+### `RingBuffer`
+
+- `explicit RingBuffer(size_t capacity = RingBuffer::kDefaultCapacity)`
+- move-only：支持移动构造和移动赋值，不支持拷贝
+- 状态：`readable()` / `writable()` / `capacity()` / `empty()` / `full()`
+- 视图：`writeSpans(std::array<std::span<std::byte>, 2>&)` / `readSpans(std::array<std::span<const std::byte>, 2>&)`
+- POSIX I/O 视图：`getWriteIovecs(...)` / `getReadIovecs(...)`
+- 指针推进：`produce(size_t)` / `consume(size_t)`
+- 数据复制：`write(const void*, size_t)` / `write(std::string_view)` / `read(void*, size_t)`
+- `clear()`
+- 语义：
+  - `capacity == 0` 构造会抛 `std::invalid_argument`
+  - `produce()` / `consume()` 超过可写或可读数量时自动截断
+  - POSIX `iovec` 方法只在支持 `<sys/uio.h>` 的平台可见
+  - 非线程安全；并发访问时必须由调用方外部同步
 
 ### `ThreadPool`
 

@@ -4,12 +4,8 @@
 #include "galay-utils/common/defn.hpp"
 #include <string>
 #include <vector>
-#include <chrono>
 #include <optional>
 #include <fstream>
-#include <sstream>
-#include <ctime>
-#include <cstring>
 #include <thread>
 
 #if defined(GALAY_PLATFORM_MACOS) || defined(GALAY_PLATFORM_LINUX) || defined(__APPLE__) || defined(__linux__)
@@ -39,67 +35,16 @@ namespace galay::utils {
  * @author galay-utils
  * @version 1.0.0
  *
- * @details 提供跨平台的系统工具函数，包括时间获取、文件操作、
- *          环境变量管理、网络地址解析和系统信息查询。
+ * @details 提供跨平台的系统工具函数，包括文件操作、环境变量管理、
+ *          网络地址解析和系统信息查询。时间相关能力位于 time/time.hpp。
  */
 
 /**
  * @brief 系统工具类
- * @details 提供时间、文件、环境变量、网络和系统信息等静态工具方法。
+ * @details 提供文件、环境变量、网络和系统信息等静态工具方法。
  */
 class System {
 public:
-    // Time functions
-
-    static int64_t currentTimeMs() {
-        auto now = std::chrono::system_clock::now();
-        return std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    }
-
-    static int64_t currentTimeUs() {
-        auto now = std::chrono::system_clock::now();
-        return std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
-    }
-
-    static int64_t currentTimeNs() {
-        auto now = std::chrono::system_clock::now();
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
-    }
-
-    static std::string currentGMTTime(const char* format = "%a, %d %b %Y %H:%M:%S GMT") {
-        time_t now = std::time(nullptr);
-        return formatTime(now, format, true);
-    }
-
-    static std::string currentLocalTime(const char* format = "%Y-%m-%d %H:%M:%S") {
-        time_t now = std::time(nullptr);
-        return formatTime(now, format, false);
-    }
-
-    static std::string formatTime(time_t timestamp, const char* format, bool utc = false) {
-        struct tm tm_buf;
-        struct tm* tm_ptr;
-
-#if defined(_WIN32)
-        if (utc) {
-            gmtime_s(&tm_buf, &timestamp);
-        } else {
-            localtime_s(&tm_buf, &timestamp);
-        }
-        tm_ptr = &tm_buf;
-#else
-        if (utc) {
-            tm_ptr = gmtime_r(&timestamp, &tm_buf);
-        } else {
-            tm_ptr = localtime_r(&timestamp, &tm_buf);
-        }
-#endif
-
-        char buffer[256];
-        std::strftime(buffer, sizeof(buffer), format, tm_ptr);
-        return std::string(buffer);
-    }
-
     // File functions
 
     static std::optional<std::string> readFile(const std::string& path) {

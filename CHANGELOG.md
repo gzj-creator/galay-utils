@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - 新增 `ByteQueueView` 与 `RingBuffer` 通用缓冲工具，覆盖流式解析、环绕读写、span 视图和 POSIX `iovec` 视图。
 - 增加 ByteQueueView、RingBuffer benchmark，并补充对应边界单测与压测文档。
 
+### Changed
+- 将系统时间戳与时间格式化接口从 `System` 迁移到 `Time`，`System` 不再保留时间相关 API。
+
 ### Fixed
 - 修复 `test_all` 系统测试使用固定 `/tmp` 文件名导致并行运行时互相污染的问题。
 

@@ -14,8 +14,105 @@
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
+#include <ctime>
+#include <string>
 
 namespace galay::utils {
+
+/**
+ * @brief 通用时间工具
+ * @details 提供系统时钟时间戳和本地/GMT 时间格式化。只做纯计算和标准库
+ *          时间转换，不创建线程，不负责 sleep 或调度。
+ */
+class Time {
+public:
+    /**
+     * @brief 获取 Unix epoch 至当前时间的毫秒数
+     * @return 当前系统时间毫秒时间戳
+     */
+    static std::int64_t currentTimeMs() {
+        return nowSinceEpoch<std::chrono::milliseconds>();
+    }
+
+    /**
+     * @brief 获取 Unix epoch 至当前时间的微秒数
+     * @return 当前系统时间微秒时间戳
+     */
+    static std::int64_t currentTimeUs() {
+        return nowSinceEpoch<std::chrono::microseconds>();
+    }
+
+    /**
+     * @brief 获取 Unix epoch 至当前时间的纳秒数
+     * @return 当前系统时间纳秒时间戳
+     */
+    static std::int64_t currentTimeNs() {
+        return nowSinceEpoch<std::chrono::nanoseconds>();
+    }
+
+    /**
+     * @brief 格式化指定时间戳
+     * @param timestamp Unix epoch 秒级时间戳
+     * @param format strftime 格式字符串；为空时返回空字符串
+     * @param utc 为 true 时按 UTC/GMT 格式化，否则按本地时区格式化
+     * @return 格式化后的时间字符串；转换或格式化失败时返回空字符串
+     */
+    static std::string formatTime(std::time_t timestamp, const char* format, bool utc = false) {
+        if (format == nullptr) {
+            return {};
+        }
+
+        std::tm tmBuffer{};
+        std::tm* tm = nullptr;
+
+#if defined(_WIN32)
+        const errno_t err = utc ? gmtime_s(&tmBuffer, &timestamp)
+                                : localtime_s(&tmBuffer, &timestamp);
+        if (err != 0) {
+            return {};
+        }
+        tm = &tmBuffer;
+#else
+        tm = utc ? gmtime_r(&timestamp, &tmBuffer)
+                 : localtime_r(&timestamp, &tmBuffer);
+        if (tm == nullptr) {
+            return {};
+        }
+#endif
+
+        char buffer[256]{};
+        if (std::strftime(buffer, sizeof(buffer), format, tm) == 0) {
+            return {};
+        }
+        return std::string(buffer);
+    }
+
+    /**
+     * @brief 获取当前 GMT 时间字符串
+     * @param format strftime 格式字符串
+     * @return 当前 GMT 时间字符串
+     */
+    static std::string currentGMTTime(const char* format = "%a, %d %b %Y %H:%M:%S GMT") {
+        return formatTime(std::time(nullptr), format, true);
+    }
+
+    /**
+     * @brief 获取当前本地时间字符串
+     * @param format strftime 格式字符串
+     * @return 当前本地时间字符串
+     */
+    static std::string currentLocalTime(const char* format = "%Y-%m-%d %H:%M:%S") {
+        return formatTime(std::time(nullptr), format, false);
+    }
+
+private:
+    template<typename Duration>
+    static std::int64_t nowSinceEpoch() {
+        const auto now = std::chrono::system_clock::now();
+        return std::chrono::duration_cast<Duration>(now.time_since_epoch()).count();
+    }
+};
 
 /**
  * @brief 轻量秒表

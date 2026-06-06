@@ -247,20 +247,9 @@ void testRandom() {
 void testSystem() {
     std::cout << "=== Testing System ===" << std::endl;
 
-    // Time
-    int64_t ms = System::currentTimeMs();
-    assert(ms > 0);
-
-    std::string gmt = System::currentGMTTime();
-    assert(!gmt.empty());
-
-    std::string local = System::currentLocalTime();
-    assert(!local.empty());
-    std::cout << "  Current time: " << local << std::endl;
-
     // File operations
     static std::atomic_uint64_t testPathCounter{0};
-    const std::string testSuffix = std::to_string(System::currentTimeNs()) + "_" +
+    const std::string testSuffix = std::to_string(Time::currentTimeNs()) + "_" +
                                    std::to_string(testPathCounter.fetch_add(1));
     std::string testFile = "/tmp/galay_test_file_" + testSuffix + ".txt";
     assert(System::writeFile(testFile, "Hello, World!"));
@@ -316,6 +305,24 @@ void testSystem() {
 // ==================== Time Utility Tests ====================
 void testTimeUtilities() {
     std::cout << "=== Testing Time Utilities ===" << std::endl;
+
+    const int64_t ms = Time::currentTimeMs();
+    const int64_t us = Time::currentTimeUs();
+    const int64_t ns = Time::currentTimeNs();
+    assert(ms > 0);
+    assert(us >= ms * 1000);
+    assert(ns >= us * 1000);
+
+    std::string gmt = Time::currentGMTTime();
+    assert(!gmt.empty());
+
+    std::string local = Time::currentLocalTime();
+    assert(!local.empty());
+    assert(Time::formatTime(0, "%Y", true) == "1970");
+    assert(Time::formatTime(0, nullptr, true).empty());
+    assert(Time::currentGMTTime(nullptr).empty());
+    assert(Time::currentLocalTime(nullptr).empty());
+    std::cout << "  Current time: " << local << std::endl;
 
     ManualClock::reset();
     StopWatch<ManualClock> watch;
