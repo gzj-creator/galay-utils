@@ -59,8 +59,7 @@ The current layout is usable but scattered. Consolidate by responsibility:
 |---|---|---|
 | `string/`, `random/`, `time/`, `common/` | `core/` or `common/` | Prefer `core/` for public pure helpers and `common/` for low-level definitions. |
 | `system/`, `process/`, `signal/`, `backtrace/` | `process/` | Process and OS-boundary helpers share ownership and failure-mode documentation. |
-| `thread/`, `pool/` | `concurrency/` | Blocking/thread-owning utilities are explicit and grouped. |
-| `cache/`, `buffer/`, `ratelimiter/`, `circuitbreaker/`, `balancer/` | `tool/` | Business-facing engineering tools are grouped under one include path. |
+| `thread/`, `pool/`, `cache/`, `buffer/`, `ratelimiter/`, `circuitbreaker/`, `balancer/` | `tool/` | Business-facing engineering and blocking resource tools are grouped under one include path; blocking semantics stay documented at API level. |
 | `consistent_hash/`, `trie/`, `mvcc/`, `huffman/` | `algorithm/` | Algorithms and data structures share the canonical algorithm include path. |
 | `args/`, `parser/` | `app/` and `config/` | CLI and config parsing are distinct application support areas. |
 | `algorithm/` | `crypto/` and `encoding/` | Split hashes/HMAC/salt from Base64. |
@@ -172,8 +171,8 @@ Make platform-facing behavior precise: OS differences, failure returns, resource
 ## Plan 4: Concurrency and Resource Utility Hardening
 
 **Files:**
-- Modify or Move: `galay-utils/concurrency/thread.hpp`
-- Modify or Move: `galay-utils/concurrency/pool.hpp`
+- Modify or Move: `galay-utils/tool/thread.hpp`
+- Modify or Move: `galay-utils/tool/pool.hpp`
 - Test: `test/concurrency/*_test.cpp`
 - Docs: `docs/06-高级主题.md`, `docs/07-常见问题.md`
 

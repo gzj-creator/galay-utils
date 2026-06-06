@@ -34,7 +34,7 @@
 #include "galay-utils/process/signal.hpp"
 
 /// 对象池
-#include "galay-utils/concurrency/pool.hpp"
+#include "galay-utils/tool/pool.hpp"
 
 /// LRU 缓存
 #include "galay-utils/tool/lru_cache.hpp"
@@ -46,7 +46,7 @@
 #include "galay-utils/tool/ring_buffer.hpp"
 
 /// 线程池
-#include "galay-utils/concurrency/thread.hpp"
+#include "galay-utils/tool/thread.hpp"
 
 /// 熔断器
 #include "galay-utils/tool/circuit_breaker.hpp"

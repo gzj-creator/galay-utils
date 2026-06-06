@@ -111,7 +111,7 @@ ctest --test-dir build-test --output-on-failure
 - `Ninja` 或 `Visual Studio` 生成器
 - 非 `AppleClang`
 - 可用的 C++23 模块扫描工具链
-- 当前模块烟雾测试覆盖 core、process、tool、concurrency、algorithm、app/config、encoding/crypto 的基础导入面；限流器仍通过细粒度头显式包含
+- 当前模块烟雾测试覆盖 core、process、tool、algorithm、app/config、encoding/crypto 的基础导入面；限流器仍通过细粒度头显式包含
 
 ```bash
 cmake -S . -B build-mod -G Ninja \

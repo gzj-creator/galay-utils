@@ -5,7 +5,7 @@
 收敛 galay-utils 当前仍偏分散的公开头文件目录，让使用者能按清晰心智选择模块：
 
 - `process/`：系统、进程、signal 和诊断边界。
-- `tool/`：工程工具、缓存、缓冲、流控、熔断和负载选择。
+- `tool/`：工程工具、线程池、等待器、对象池、缓存、缓冲、流控、熔断和负载选择。
 - `algorithm/`：算法和数据结构。
 
 本设计不保留兼容头。每次移动公开头文件，都必须同步更新 umbrella header、module facade、测试、文档和安装验证。
@@ -32,6 +32,8 @@
 目标职责：可直接组合到业务系统里的工程工具。
 
 - `lru_cache.hpp`
+- `thread.hpp`
+- `pool.hpp`
 - `byte_queue_view.hpp`
 - `ring_buffer.hpp`
 - `rate_limiter.hpp`
@@ -42,6 +44,7 @@
 理由：
 
 - `LruCache`、buffer、ring buffer 是工程常用工具，不属于纯算法接口。
+- `ThreadPool`、`TaskWaiter`、`ObjectPool`、`BlockingObjectPool` 是工程资源工具，阻塞语义在 API 文档中说明，而不再保留单独公开目录。
 - `RateLimiter`、`CircuitBreaker` 是运行期流控与保护工具。
 - `Balancer` 是节点选择工具，虽然有算法属性，但业务使用心智更接近流量工具。
 
@@ -63,14 +66,11 @@
 
 - `core/`：字符串、随机、时间、类型名等核心小工具。
 - `common/`：底层定义、类型别名和宏。
-- `concurrency/`：线程池、对象池等线程/阻塞语义明确的工具。
 - `app/`：CLI 应用支持。
 - `config/`：配置解析。
 - `crypto/`：MD5、MurmurHash3、Salt、HMAC。
 - `encoding/`：Base64。
 - `module/`：C++23 module facade。
-
-`concurrency/` 不并入 `tool/`。原因是 `ThreadPool`、`BlockingObjectPool`、`TaskWaiter` 带明显阻塞和线程所有权语义，保留专门目录更能提醒调用方不要误用于协程调度线程。
 
 ## Migration Rules
 
@@ -114,3 +114,4 @@ rtk proxy rg -n 'galay-utils/(platform|resilience|routing|data|buffer|cache)/' g
 - `buffer/` 和 `cache/` 本设计迁入 `tool/`，减少目录数量。
 - `routing/` 不保留，`balancer` 进 `tool/`，`consistent_hash` 进 `algorithm/`。
 - `data/` 不保留，数据结构进入 `algorithm/`。
+- `concurrency/` 不保留公开头文件，线程池、等待器和对象池进入 `tool/`，阻塞语义通过 API 文档和高级主题说明。

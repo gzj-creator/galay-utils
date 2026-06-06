@@ -20,8 +20,8 @@
 - `galay-utils/core/type_name.hpp`
 - `galay-utils/process/backtrace.hpp`
 - `galay-utils/process/signal.hpp`
-- `galay-utils/concurrency/thread.hpp`
-- `galay-utils/concurrency/pool.hpp`
+- `galay-utils/tool/thread.hpp`
+- `galay-utils/tool/pool.hpp`
 - `galay-utils/tool/lru_cache.hpp`
 - `galay-utils/tool/byte_queue_view.hpp`
 - `galay-utils/tool/ring_buffer.hpp`
@@ -176,8 +176,8 @@
 | Cache | `galay-utils/tool/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
 | ByteQueueView | `galay-utils/tool/byte_queue_view.hpp` | `ByteQueueView` |
 | RingBuffer | `galay-utils/tool/ring_buffer.hpp` | `RingBuffer` |
-| Thread | `galay-utils/concurrency/thread.hpp` | `ThreadPool`、`TaskWaiter` |
-| Pool | `galay-utils/concurrency/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
+| Thread | `galay-utils/tool/thread.hpp` | `ThreadPool`、`TaskWaiter` |
+| Pool | `galay-utils/tool/pool.hpp` | `PoolableObject`、`ObjectPool<T>`、`BlockingObjectPool<T>` |
 
 ### `LruCache`
 
@@ -626,7 +626,7 @@
 
 - 当前仓库没有统一的 `expected` / 错误码基类；检索失败语义时必须回到对应头文件签名，而不能把整个仓库当成单一错误模型
 - 纯工具类主路径集中在 `core/`、`encoding/`、`crypto/`、`common/`，它们主要回答“输入是什么、返回值是什么”
-- 线程 / 资源相关能力集中在 `concurrency/`、`process/`、`tool/`，检索时要额外关注阻塞/等待/资源释放语义
+- 线程 / 资源相关能力集中在 `tool/`、`process/`，检索时要额外关注阻塞/等待/资源释放语义
 - `ThreadPool::addTask(...)` 返回 `std::future<...>`，而 `execute(...)` 是 fire-and-forget 风格；两者不应混用为同一等待模型
 - `ObjectPool<T>` 与 `BlockingObjectPool<T>` 不是同一组方法：前者是“可扩容 + 非阻塞取对象”，后者是“固定池 + 阻塞等待”
 - `RateLimiter` 不再提供 `acquire(...)` awaitable；使用 `tryAcquire(...)` 获取同步非阻塞结果

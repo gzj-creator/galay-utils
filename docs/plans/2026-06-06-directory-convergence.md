@@ -22,7 +22,6 @@
 
 - Do not keep compatibility headers at old paths.
 - Do not change runtime behavior while moving headers.
-- Do not migrate `ThreadPool`, `TaskWaiter`, `ObjectPool`, or `BlockingObjectPool` out of `concurrency/`.
 - Do not reintroduce `galay-kernel` dependencies.
 - Do not migrate `TimingWheelTimerManager`, `ThreadSafeTimerManager`, `TimerScheduler`, or `TimeoutTimer`.
 - Do not commit unless explicitly requested.
@@ -88,6 +87,8 @@ Expected: build succeeds, `platform_test` passes, no whitespace errors.
 
 **Files:**
 - Move: `galay-utils/tool/lru_cache.hpp` -> `galay-utils/tool/lru_cache.hpp`
+- Move: `galay-utils/concurrency/thread.hpp` -> `galay-utils/tool/thread.hpp`
+- Move: `galay-utils/concurrency/pool.hpp` -> `galay-utils/tool/pool.hpp`
 - Move: `galay-utils/tool/byte_queue_view.hpp` -> `galay-utils/tool/byte_queue_view.hpp`
 - Move: `galay-utils/tool/ring_buffer.hpp` -> `galay-utils/tool/ring_buffer.hpp`
 - Move: `galay-utils/tool/rate_limiter.hpp` -> `galay-utils/tool/rate_limiter.hpp`
@@ -100,6 +101,8 @@ Expected: build succeeds, `platform_test` passes, no whitespace errors.
 
 ```bash
 rtk git mv galay-utils/tool/lru_cache.hpp galay-utils/tool/lru_cache.hpp
+rtk git mv galay-utils/concurrency/thread.hpp galay-utils/tool/thread.hpp
+rtk git mv galay-utils/concurrency/pool.hpp galay-utils/tool/pool.hpp
 rtk git mv galay-utils/tool/byte_queue_view.hpp galay-utils/tool/byte_queue_view.hpp
 rtk git mv galay-utils/tool/ring_buffer.hpp galay-utils/tool/ring_buffer.hpp
 rtk git mv galay-utils/tool/rate_limiter.hpp galay-utils/tool/rate_limiter.hpp
@@ -113,6 +116,8 @@ rtk git mv galay-utils/tool/balancer.inl galay-utils/tool/balancer.inl
 Replace paths:
 
 - `galay-utils/tool/lru_cache.hpp` -> `galay-utils/tool/lru_cache.hpp`
+- `galay-utils/concurrency/thread.hpp` -> `galay-utils/tool/thread.hpp`
+- `galay-utils/concurrency/pool.hpp` -> `galay-utils/tool/pool.hpp`
 - `galay-utils/tool/byte_queue_view.hpp` -> `galay-utils/tool/byte_queue_view.hpp`
 - `galay-utils/tool/ring_buffer.hpp` -> `galay-utils/tool/ring_buffer.hpp`
 - `galay-utils/tool/rate_limiter.hpp` -> `galay-utils/tool/rate_limiter.hpp`
@@ -135,10 +140,12 @@ Update all in-repo references in:
 ```bash
 rtk cmake --build cmake-build-test --target cache_test buffer_test resilience_test routing_test
 rtk ctest --test-dir cmake-build-test -R 'cache_test|buffer_test|resilience_test|routing_test' --output-on-failure
+rtk cmake --build cmake-build-test --target concurrency_test
+rtk ctest --test-dir cmake-build-test -R '^concurrency_test$' --output-on-failure
 rtk proxy git diff --check
 ```
 
-Expected: all four groups pass.
+Expected: all five groups pass.
 
 ## Task 3: Move Algorithms and Data Structures
 
@@ -221,10 +228,10 @@ Remove active API references to:
 Use these group names:
 
 - 进程与系统边界：`process/`
-- 工程工具：`tool/`
+- 工程工具与阻塞资源工具：`tool/`
 - 算法与数据结构：`algorithm/`
 
-Keep `concurrency/` separate and document that it remains separate because of blocking/thread ownership semantics.
+Do not keep `concurrency/` as a public include directory. Document `ThreadPool`, `TaskWaiter`, `ObjectPool`, and `BlockingObjectPool` under `tool/`, with their blocking/thread ownership semantics called out explicitly.
 
 **Step 3: Update import smoke**
 

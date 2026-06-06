@@ -16,7 +16,7 @@ namespace galay::utils {
 
 /**
  * @file thread.hpp
- * @brief 线程池和线程安全容器
+ * @brief 线程池和任务等待器
  * @author galay-utils
  * @version 1.0.0
  *

@@ -1,7 +1,16 @@
 #include "../test_common.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
+
+void testConcurrencyHeadersMovedToTool() {
+    const auto sourceRoot = std::filesystem::path(GALAY_UTILS_SOURCE_DIR);
+    assert(!std::filesystem::exists(sourceRoot / "galay-utils/concurrency/pool.hpp"));
+    assert(!std::filesystem::exists(sourceRoot / "galay-utils/concurrency/thread.hpp"));
+    assert(std::filesystem::exists(sourceRoot / "galay-utils/tool/pool.hpp"));
+    assert(std::filesystem::exists(sourceRoot / "galay-utils/tool/thread.hpp"));
+}
 
 void testPool() {
     std::cout << "=== Testing Pool ===" << std::endl;
@@ -37,7 +46,7 @@ void testPool() {
 // ==================== Thread Tests ====================
 
 void testThreadPoolUsesConcurrentQueueWithoutMutex() {
-    std::ifstream input(std::string(GALAY_UTILS_SOURCE_DIR) + "/galay-utils/concurrency/thread.hpp");
+    std::ifstream input(std::string(GALAY_UTILS_SOURCE_DIR) + "/galay-utils/tool/thread.hpp");
     assert(input.good());
 
     std::ostringstream buffer;
@@ -214,6 +223,7 @@ void stressTestThreadPool() {
 int main() {
     std::cout << "\n=== concurrency_test ===" << std::endl;
     try {
+        testConcurrencyHeadersMovedToTool();
         testPool();
         testThreadPoolUsesConcurrentQueueWithoutMutex();
         testThread();

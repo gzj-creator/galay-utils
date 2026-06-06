@@ -17,7 +17,7 @@
 - Modify: `test/CMakeLists.txt`
 
 **Steps:**
-1. Add source inspection assertions that `galay-utils/concurrency/thread.hpp` no longer contains `std::mutex`, `std::condition_variable`, `lock_guard`, or `unique_lock` in the thread pool/waiter implementation.
+1. Add source inspection assertions that `galay-utils/tool/thread.hpp` no longer contains `std::mutex`, `std::condition_variable`, `lock_guard`, or `unique_lock` in the thread pool/waiter implementation.
 2. Add behavioral coverage for `pendingTasks()`, `waitAll()`, `stopNow()`, and add-after-stop.
 3. Run `rtk cmake --build cmake-build-test --target concurrency_test`.
 4. Expected before implementation: compile or assertion failure because the header still uses mutex/cv.
@@ -37,7 +37,7 @@
 ### Task 3: Refactor ThreadPool
 
 **Files:**
-- Modify: `galay-utils/concurrency/thread.hpp`
+- Modify: `galay-utils/tool/thread.hpp`
 
 **Steps:**
 1. Include `<concurrentqueue/moodycamel/blockingconcurrentqueue.h>`.
