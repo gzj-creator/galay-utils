@@ -23,6 +23,7 @@
 - `galay-utils/tool/thread.hpp`
 - `galay-utils/tool/pool.hpp`
 - `galay-utils/cache/lru_cache.hpp`
+- `galay-utils/cache/bytes.hpp`
 - `galay-utils/cache/byte_queue_view.hpp`
 - `galay-utils/cache/ring_buffer.hpp`
 - `galay-utils/tool/rate_limiter.hpp`
@@ -175,6 +176,7 @@
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
 | Cache | `galay-utils/cache/lru_cache.hpp` | `LruCache<Key, Value, Hash, KeyEqual, Clock, EnableStats>` |
+| Bytes | `galay-utils/cache/bytes.hpp` | `Bytes`、`ByteMetaData` |
 | ByteQueueView | `galay-utils/cache/byte_queue_view.hpp` | `ByteQueueView` |
 | RingBuffer | `galay-utils/cache/ring_buffer.hpp` | `RingBuffer` |
 | Thread | `galay-utils/tool/thread.hpp` | `ThreadPool`、`TaskWaiter` |
@@ -201,6 +203,34 @@
   - 容量淘汰和 TTL 淘汰都是惰性的，不创建后台线程或定时器
   - 统计默认关闭；只有 `EnableStats = true` 的实例才在热路径累计计数
   - 纯容量 LRU 未配置 TTL 条目时不访问 `Clock::now()`
+
+### `Bytes` / `ByteMetaData`
+
+`ByteMetaData`：
+
+- `struct ByteMetaData { uint8_t* data; size_t size; size_t capacity; }`
+- `ByteMetaData()` / `ByteMetaData(std::string&)` / `ByteMetaData(std::string_view)`
+- `ByteMetaData(const char*)` / `ByteMetaData(const uint8_t*)`
+- `ByteMetaData(const char*, size_t)` / `ByteMetaData(const uint8_t*, size_t)`
+- `mallocBytes(size_t)` / `deepCopyBytes(const ByteMetaData&)`
+- `reallocBytes(ByteMetaData&, size_t)` / `clearBytes(ByteMetaData&)` / `freeBytes(ByteMetaData&)`
+
+`Bytes`：
+
+- move-only：支持移动构造和移动赋值，不支持拷贝
+- 构造：`Bytes()` / `Bytes(std::string&)` / `Bytes(std::string&&)` / `Bytes(const char*)` / `Bytes(const uint8_t*)`
+- 构造：`Bytes(const char*, size_t)` / `Bytes(const uint8_t*, size_t)` / `explicit Bytes(size_t capacity)`
+- 非拥有视图：`Bytes::fromString(std::string&)` / `Bytes::fromString(std::string_view)` / `Bytes::fromCString(const char*, size_t, size_t)`
+- 查询：`data()` / `c_str()` / `size()` / `capacity()` / `empty()`
+- 转换：`toString()` / `toStringView()`
+- 管理：`clear()`
+- 比较：`operator==` / `operator!=`
+- 语义：
+  - owning 构造函数会深拷贝输入字节；`Bytes` 析构或 `clear()` 时释放拥有的内存
+  - `fromString(...)` / `fromCString(...)` 只创建 non-owning 视图，调用方必须保证底层存储生命周期长于 `Bytes`
+  - `ByteMetaData` 是底层原始指针/大小/容量描述结构，本身不表达所有权
+  - `c_str()` 只有在 `capacity() > size()` 时才会补写 null 终止符，不会越界扩容
+  - 非线程安全；并发访问同一个实例时必须由调用方外部同步
 
 ### `ByteQueueView`
 

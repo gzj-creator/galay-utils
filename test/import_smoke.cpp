@@ -28,6 +28,9 @@ int main() {
     queue.append("ab", 2);
     assert(queue.view(0, 2) == "ab");
 
+    Bytes bytes("mod", 3);
+    assert(bytes.toStringView() == "mod");
+
     RingBuffer ring(4);
     assert(ring.write("xy", 2) == 2);
     assert(ring.readable() == 2);

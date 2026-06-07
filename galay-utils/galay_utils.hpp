@@ -39,6 +39,9 @@
 /// LRU 缓存
 #include "galay-utils/cache/lru_cache.hpp"
 
+/// 字节容器
+#include "galay-utils/cache/bytes.hpp"
+
 /// 字节队列视图
 #include "galay-utils/cache/byte_queue_view.hpp"
 

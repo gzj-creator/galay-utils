@@ -206,12 +206,94 @@ void testRingBuffer() {
     std::cout << "RingBuffer tests passed!" << std::endl;
 }
 
+void testByteMetaDataHelpers() {
+    std::cout << "=== Testing ByteMetaData helpers ===" << std::endl;
+
+    ByteMetaData meta = mallocBytes(8);
+    assert(meta.data != nullptr);
+    assert(meta.size == 0);
+    assert(meta.capacity == 8);
+
+    std::memcpy(meta.data, "abcd", 4);
+    meta.size = 4;
+
+    ByteMetaData copy = deepCopyBytes(meta);
+    assert(copy.data != nullptr);
+    assert(copy.data != meta.data);
+    assert(copy.size == 4);
+    assert(copy.capacity == 8);
+    assert(std::memcmp(copy.data, "abcd", 4) == 0);
+
+    reallocBytes(copy, 2);
+    assert(copy.size == 2);
+    assert(copy.capacity == 2);
+    assert(std::memcmp(copy.data, "ab", 2) == 0);
+
+    clearBytes(copy);
+    assert(copy.data != nullptr);
+    assert(copy.size == 0);
+    assert(copy.capacity == 2);
+
+    freeBytes(copy);
+    assert(copy.data == nullptr);
+    assert(copy.size == 0);
+    assert(copy.capacity == 0);
+
+    freeBytes(meta);
+
+    std::cout << "ByteMetaData helper tests passed!" << std::endl;
+}
+
+void testBytesContainer() {
+    std::cout << "=== Testing Bytes ===" << std::endl;
+
+    std::string source = "hello";
+    Bytes owned(source);
+    source[0] = 'H';
+    assert(owned.toString() == "hello");
+    assert(owned.size() == 5);
+    assert(owned.capacity() == 5);
+    assert(!owned.empty());
+
+    Bytes literal("hello", 5);
+    assert(owned == literal);
+    assert(!(owned != literal));
+
+    std::string viewSource = "view";
+    Bytes view = Bytes::fromString(viewSource);
+    assert(view.toStringView() == "view");
+    viewSource[0] = 'V';
+    assert(view.toStringView() == "View");
+
+    Bytes raw = Bytes::fromCString("abcdef", 3, 6);
+    assert(raw.toString() == "abc");
+    assert(raw.capacity() == 6);
+
+    Bytes moved(std::move(owned));
+    assert(moved.toString() == "hello");
+    assert(owned.empty());
+    assert(owned.data() == nullptr);
+
+    Bytes assigned(4);
+    assigned = std::move(moved);
+    assert(assigned.toString() == "hello");
+    assert(moved.empty());
+
+    assigned.clear();
+    assert(assigned.empty());
+    assert(assigned.data() == nullptr);
+
+    std::cout << "Bytes tests passed!" << std::endl;
+}
+
 // ==================== BackTrace Tests ====================
 
 int main() {
     std::cout << "\n=== buffer_test ===" << std::endl;
     try {
         testBufferHeadersMovedToCache();
+        testByteMetaDataHelpers();
+        testBytesContainer();
         testByteQueueView();
         testRingBuffer();
         return 0;

@@ -16,6 +16,7 @@ export {
 #include "galay-utils/process/signal.hpp"
 #include "galay-utils/tool/pool.hpp"
 #include "galay-utils/cache/lru_cache.hpp"
+#include "galay-utils/cache/bytes.hpp"
 #include "galay-utils/cache/byte_queue_view.hpp"
 #include "galay-utils/cache/ring_buffer.hpp"
 #include "galay-utils/tool/thread.hpp"
