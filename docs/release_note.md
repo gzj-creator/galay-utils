@@ -63,3 +63,17 @@
 - 将单体 `test_all.cpp` 拆分为按领域组织的 CTest target，并扩展模块导入烟测
 - 修复系统测试固定 `/tmp` 文件污染、字符串/随机工具边界处理等问题
 - 将 CMake project 版本提升到 `3.0.0`，对齐本次主版本 tag
+
+## v3.1.0 - 2026-06-07
+
+- **版本级别**: 中版本（minor）
+- **Git 提交消息**: feat: 发布 v3.1.0 并迁移 Bytes 容器到 utils
+- **Git Tag**: v3.1.0
+
+### 变更摘要
+
+- 新增 `galay-utils/cache/bytes.hpp`，提供 header-only `Bytes` 仅移动字节容器和 `ByteMetaData` 原始字节元数据
+- `Bytes` 支持 owning 深拷贝构造、non-owning `fromString` / `fromCString` 视图、移动语义、字符串转换和字节内容比较
+- 新增 `mallocBytes`、`deepCopyBytes`、`reallocBytes`、`clearBytes`、`freeBytes` 辅助函数，便于 kernel 等下游复用统一字节元数据
+- 将 `Bytes` 接入 umbrella header 与 C++23 module facade，补充 buffer 测试和模块导入烟测
+- 补充迁移设计、实现计划和公开 API 文档，并将 CMake project 版本提升到 `3.1.0`

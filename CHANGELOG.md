@@ -11,6 +11,20 @@
 
 暂无未发布变更。
 
+## [v3.1.0] - 2026-06-07
+
+### Added
+- 新增 header-only `Bytes` 仅移动字节容器，支持 owning 深拷贝和 non-owning 字节视图。
+- 新增 `ByteMetaData` 原始字节元数据和 `mallocBytes`、`deepCopyBytes`、`reallocBytes`、`clearBytes`、`freeBytes` 辅助函数。
+- 将 `Bytes` 接入 umbrella header 与 C++23 module facade，并补充 buffer 测试和模块导入烟测覆盖。
+
+### Docs
+- 补充 `Bytes` 迁移设计与实现计划，明确 `galay-kernel` 后续删除本地 Bytes 实现并消费 `galay-utils`。
+- 更新快速开始、API 参考、使用指南和 README 的缓存与缓冲工具说明。
+
+### Chore
+- 将 CMake project 版本提升到 `3.1.0`，对齐本次中版本 tag。
+
 ## [v3.0.0] - 2026-06-07
 
 ### Added
