@@ -48,3 +48,18 @@
 - 修复 `defn.hpp` 与 `backtrace/trace.hpp` 中重复声明导致 `test_all` 无法编译的问题
 - 修复 `hmac.hpp` 单独包含时缺少 `<vector>` 依赖的问题
 - 同步更新 `TomlParser` 文档，并将 CMake project 版本提升到 `2.1.3`
+
+## v3.0.0 - 2026-06-07
+
+- **版本级别**: 大版本（major）
+- **Git 提交消息**: refactor: 发布 v3.0.0 并收束工具模块目录
+- **Git Tag**: v3.0.0
+
+### 变更摘要
+
+- 将公开头文件收敛到 canonical include 目录，包括 `core`、`cache`、`tool`、`process`、`algorithm`、`config`、`crypto`、`encoding` 等，不保留旧路径兼容头
+- 新增 `LruCache`、`ByteQueueView`、`RingBuffer`、split-block `BloomFilter<T>`、`RandomGenerator` 以及轻量时间工具，补充测试、benchmark 和文档
+- 将 `ThreadPool` 任务队列切换到 moodycamel `BlockingConcurrentQueue`，CMake 包配置暴露 `concurrentqueue` 头依赖
+- 将单体 `test_all.cpp` 拆分为按领域组织的 CTest target，并扩展模块导入烟测
+- 修复系统测试固定 `/tmp` 文件污染、字符串/随机工具边界处理等问题
+- 将 CMake project 版本提升到 `3.0.0`，对齐本次主版本 tag

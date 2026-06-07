@@ -1,10 +1,17 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+维护说明：
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
+- 本文件记录所有对用户有意义的变更，格式参考 Keep a Changelog，版本遵循 Semantic Versioning。
+- 未发布提交先写入 `## [Unreleased]`；打 tag 时将累计条目收束为 `## [vX.Y.Z] - YYYY-MM-DD`。
+- 版本级别按兼容性影响判定：破坏性变更升 major，新功能升 minor，修复、文档、配置维护升 patch。
+- 内容粒度按 Added / Changed / Fixed / Docs / Chore 分组，只记录主要行为与接口变化，避免逐文件流水账。
 
 ## [Unreleased]
+
+暂无未发布变更。
+
+## [v3.0.0] - 2026-06-07
 
 ### Added
 - 新增非线程安全的通用 `LruCache`，支持容量 LRU 淘汰、惰性 TTL 淘汰、自定义哈希/比较器、淘汰回调和可选 expire-after-access。
@@ -30,6 +37,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - 修复 `test_all` 系统测试使用固定 `/tmp` 文件名导致并行运行时互相污染的问题。
 - 收紧 `StringUtils` 空指针 hex 转换、非法 hex、格式化空格式和严格 parse 边界行为。
 - 修复 `Randomizer::randomBytes(nullptr, nonzero)` 可能崩溃的问题，并定义非法随机概率边界行为。
+
+### Chore
+- 将 CMake project 版本提升到 `3.0.0`，对齐本次主版本 tag。
 
 ## [v2.1.3] - 2026-05-24
 
