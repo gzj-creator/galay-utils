@@ -50,6 +50,11 @@ int main() {
     hash.addNode(NodeConfig{"node-a", "127.0.0.1:1", 1});
     assert(hash.nodeCount() == 1);
 
+    BloomFilter<std::string> bloom(256);
+    assert(!bloom.possiblyContains("abc"));
+    bloom.add("abc");
+    assert(bloom.possiblyContains("abc"));
+
     TrieTree trie;
     trie.add("abc");
     assert(trie.contains("abc"));

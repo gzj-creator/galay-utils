@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - 新增轻量时间工具 `StopWatch`、`Deadline` 和 `Backoff`，保持无线程、无调度器、无阻塞语义。
 - 新增 `ByteQueueView` 与 `RingBuffer` 通用缓冲工具，覆盖流式解析、环绕读写、span 视图和 POSIX `iovec` 视图。
 - 增加 ByteQueueView、RingBuffer benchmark，并补充对应边界单测与压测文档。
+- 新增 split-block `BloomFilter<T>`，用于高吞吐概率型存在性预过滤，并补充边界/压力测试与 benchmark。
 - 新增本地无锁 `RandomGenerator`，用于协程热路径或单线程上下文，避免共享 `Randomizer` 的 mutex 竞争。
 - 新增模块生产化路线图和目录收敛计划，并完成目录/测试布局收敛与 core 工具硬化两个阶段。
 

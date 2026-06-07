@@ -21,6 +21,7 @@ export {
 #include "galay-utils/tool/thread.hpp"
 #include "galay-utils/tool/circuit_breaker.hpp"
 #include "galay-utils/algorithm/consistent_hash.hpp"
+#include "galay-utils/algorithm/bloom_filter.hpp"
 #include "galay-utils/algorithm/trie.hpp"
 #include "galay-utils/algorithm/huffman.hpp"
 #include "galay-utils/algorithm/mvcc.hpp"

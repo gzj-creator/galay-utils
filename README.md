@@ -28,6 +28,7 @@
 - 并发与资源：`ThreadPool`、`TaskWaiter`、`ObjectPool<T>`、`BlockingObjectPool<T>`
 - 流控与容错：`CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter`、`CircuitBreaker`
 - 路由与分布式：`RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>`、`ConsistentHash`
+- 概率型过滤：`BloomFilter<T>`
 - 数据结构：`TrieTree`、`Mvcc<T>`、`Snapshot`、`Transaction<T>`、`Huffman*`
 - 应用与配置：`App` / `Cmd` / `Arg`、`ConfigParser`、`IniParser`、`EnvParser`、`TomlParser`、`ParserManager`
 - 编码与加密：`Base64Util`、`MD5Util`、`MurmurHash3Util`、`SaltGenerator`、`SHA256`、`HMAC`

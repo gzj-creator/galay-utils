@@ -54,6 +54,9 @@
 /// 一致性哈希
 #include "galay-utils/algorithm/consistent_hash.hpp"
 
+/// 布隆过滤器
+#include "galay-utils/algorithm/bloom_filter.hpp"
+
 /// 字典树
 #include "galay-utils/algorithm/trie.hpp"
 

@@ -29,6 +29,7 @@
 - `galay-utils/tool/circuit_breaker.hpp`
 - `galay-utils/tool/balancer.hpp`
 - `galay-utils/algorithm/consistent_hash.hpp`
+- `galay-utils/algorithm/bloom_filter.hpp`
 - `galay-utils/algorithm/trie.hpp`
 - `galay-utils/algorithm/mvcc.hpp`
 - `galay-utils/algorithm/huffman.hpp`
@@ -336,6 +337,7 @@
 |---|---|---|
 | Balancer | `galay-utils/tool/balancer.hpp` | `RoundRobinLoadBalancer<T>`、`WeightRoundRobinLoadBalancer<T>`、`RandomLoadBalancer<T>`、`WeightedRandomLoadBalancer<T>` |
 | ConsistentHash | `galay-utils/algorithm/consistent_hash.hpp` | `NodeConfig`、`NodeStatus`、`PhysicalNode`、`ConsistentHash` |
+| BloomFilter | `galay-utils/algorithm/bloom_filter.hpp` | `BloomFilter<T, Hash>` |
 | Trie | `galay-utils/algorithm/trie.hpp` | `TrieTree` |
 | MVCC | `galay-utils/algorithm/mvcc.hpp` | `VersionedValue<T>`、`Mvcc<T>`、`Snapshot`、`Transaction<T>` |
 | Huffman | `galay-utils/algorithm/huffman.hpp` | `HuffmanCode`、`HuffmanTable<T>`、`HuffmanEncoder<T>`、`HuffmanDecoder<T>`、`HuffmanBuilder<T>` |
@@ -371,6 +373,24 @@
   - `getAllNodes() -> std::vector<NodeConfig>`
   - `nodeCount()` / `virtualNodeCount()` / `empty()` / `clear()`
 - 语义：当前公开头里没有 `getNodeStatus()`；状态相关检索应落到 `NodeStatus`、`PhysicalNode` 以及 `markHealthy()` / `markUnhealthy()`
+
+### `BloomFilter<T, Hash>`
+
+- `BloomFilter(size_t bitCount, Hash hash = Hash{})`
+- `static fromExpectedItems(size_t expectedItems, double falsePositiveRate, Hash hash = Hash{}) -> BloomFilter`
+- `static bitCountForExpectedItems(size_t expectedItems, double falsePositiveRate) -> size_t`
+- `add(const T&)` / `addHash(uint64_t hash64)`
+- `possiblyContains(const T&) const` / `possiblyContainsHash(uint64_t hash64) const`
+- `clear()`
+- `bitCount()` / `blockCount()` / `hashCount()` / `empty()` / `insertionCount()`
+- 语义：
+  - 采用 split-block Bloom Filter：每个 256-bit block 含 8 个 `uint32_t` word，每次 add/query 只访问一个 block，并在每个 word 中设置或检查 1 个 bit
+  - `possiblyContains(...) == false` 表示一定不存在
+  - `possiblyContains(...) == true` 只表示可能存在，存在假阳性；需要精确判断时必须回源确认
+  - 不支持删除；普通 Bloom Filter 无法安全删除单个元素
+  - false positive rate 受 bit 数、插入规模和 hash 分布影响，`fromExpectedItems(...)` 是容量估算而不是误判率承诺
+  - 非线程安全；并发 add/query/clear 同一个实例时必须外部同步
+  - 默认 `std::hash` 不保证跨进程或跨版本稳定；持久化或跨服务共享时应使用稳定 64-bit hash 并调用 `addHash()` / `possiblyContainsHash()`
 
 ### `TrieTree`
 

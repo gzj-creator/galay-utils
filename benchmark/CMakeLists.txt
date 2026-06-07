@@ -12,3 +12,6 @@ target_link_libraries(byte_queue_view_benchmark PRIVATE galay-utils)
 
 add_executable(ring_buffer_benchmark ring_buffer_benchmark.cpp)
 target_link_libraries(ring_buffer_benchmark PRIVATE galay-utils)
+
+add_executable(bloom_filter_benchmark bloom_filter_benchmark.cpp)
+target_link_libraries(bloom_filter_benchmark PRIVATE galay-utils)
