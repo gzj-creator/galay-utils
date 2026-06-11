@@ -15,3 +15,6 @@ target_link_libraries(ring_buffer_benchmark PRIVATE galay-utils)
 
 add_executable(bloom_filter_benchmark bloom_filter_benchmark.cpp)
 target_link_libraries(bloom_filter_benchmark PRIVATE galay-utils)
+
+add_executable(circuit_breaker_benchmark circuit_breaker_benchmark.cpp)
+target_link_libraries(circuit_breaker_benchmark PRIVATE galay-utils)

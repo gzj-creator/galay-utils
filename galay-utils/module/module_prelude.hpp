@@ -31,6 +31,9 @@
 #if __has_include(<condition_variable>)
 #include <condition_variable>
 #endif
+#if __has_include(<concepts>)
+#include <concepts>
+#endif
 #if __has_include(<csignal>)
 #include <csignal>
 #endif
@@ -151,11 +154,17 @@
 #if __has_include(<typeinfo>)
 #include <typeinfo>
 #endif
+#if __has_include(<type_traits>)
+#include <type_traits>
+#endif
 #if __has_include(<unistd.h>)
 #include <unistd.h>
 #endif
 #if __has_include(<unordered_map>)
 #include <unordered_map>
+#endif
+#if __has_include(<utility>)
+#include <utility>
 #endif
 #if __has_include(<variant>)
 #include <variant>

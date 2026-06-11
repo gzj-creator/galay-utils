@@ -312,7 +312,7 @@
 | 模块 | 头文件 | 主要类型 |
 |---|---|---|
 | RateLimiter | `galay-utils/tool/rate_limiter.hpp` | `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` |
-| CircuitBreaker | `galay-utils/tool/circuit_breaker.hpp` | `CircuitState`、`CircuitBreakerConfig`、`CircuitBreaker` |
+| CircuitBreaker | `galay-utils/tool/circuit_breaker.hpp` | `CircuitState`、`CircuitBreakerError`、`CircuitBreakerExpected`、`CircuitBreakerConfig`、`BasicCircuitBreaker`、`CircuitBreaker` |
 
 ### `RateLimiter`
 
@@ -347,19 +347,28 @@
 
 ### `CircuitBreaker`
 
+- `CircuitBreakerError`
+  - `Open`：熔断器打开，`execute(F&&)` 未执行主函数
+- `CircuitBreakerExpected<T>`：约束 `execute` / `executeWithFallback` 接受的 expected-like 返回类型；函数需按值返回该类型，类型需要提供 `value_type`、`error_type` 和 `has_value()`
 - `CircuitBreakerConfig`
   - `failureThreshold`
   - `successThreshold`
+  - `halfOpenMaxRequests`
   - `resetTimeout`
+- `BasicCircuitBreaker<ClockType = std::chrono::steady_clock>`：可注入时钟源的熔断器模板，适合确定性测试或自定义时间源
 - `CircuitBreaker`
+  - `using CircuitBreaker = BasicCircuitBreaker<>`
   - `allowRequest()`
   - `onSuccess()` / `onFailure()`
-  - `execute(F&&)`
-  - `executeWithFallback(F&&, Fallback&&)`
+  - `execute(F&&)`：主函数必须返回 expected-like 结果，且 `error_type` 可从 `CircuitBreakerError` 构造；成功结果记录成功，失败结果记录失败；熔断打开时返回包含 `CircuitBreakerError::Open` 的失败结果
+  - `executeWithFallback(F&&, Fallback&&)`：主函数和 fallback 必须返回同一 expected-like 类型；主函数失败或熔断打开时返回 fallback 结果
   - `state()` / `stateString()`
   - `failureCount()` / `successCount()`
   - `reset()` / `forceOpen()`
   - `config()`
+  - 语义：执行接口不捕获异常，也不通过异常判断失败；调用方应通过 `std::expected` 或兼容的结果类型表达业务失败
+  - 配置归一化：`failureThreshold`、`successThreshold`、`halfOpenMaxRequests` 小于 1 时按 1 处理；负的 `resetTimeout` 按 0 处理
+  - 半开语义：`halfOpenMaxRequests` 限制半开状态下同时放行的探测请求数，探测成功或失败后释放名额
 
 ## 5. 路由、分布式与数据结构
 

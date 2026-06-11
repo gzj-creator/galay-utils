@@ -9,7 +9,23 @@
 
 ## [Unreleased]
 
-暂无未发布变更。
+### Changed
+- 将 `CircuitBreaker` 的 `execute()` 和 `executeWithFallback()` 从异常模型重构为 `std::expected` 模型：不再通过 `try/catch` 判断失败，改为检查返回结果的 `has_value()`；熔断打开时返回包含 `CircuitBreakerError::Open` 的失败结果，不抛异常。
+- 引入 `CircuitBreakerExpected<T>` concept 约束执行接口接受的 expected-like 返回类型，通过编译期类型检查替代运行时异常。
+- 将 `CircuitBreaker` 重命名为模板 `BasicCircuitBreaker<ClockType>`，支持注入自定义时钟源做确定性测试；`CircuitBreaker` 为默认 `steady_clock` 别名。
+- 放宽部分原子操作的内存序（`acq_rel` → `relaxed`），减少不必要同步开销。
+- 将超时时间预计算为纳秒整数，避免每次 `allowRequest()` 重复 `duration_cast`。
+
+### Added
+- 新增 `halfOpenMaxRequests` 配置字段，限制半开状态下同时放行的并发探测请求数。
+- 新增配置归一化逻辑 `normalizeConfig()`，确保 `failureThreshold`、`successThreshold`、`halfOpenMaxRequests` 至少为 1，`resetTimeout` 非负。
+- 新增 `forceOpen()` 时记录当前时间戳并重置计数器，使后续超时转换到半开状态语义正确。
+- 新增 5 组 CircuitBreaker expected 执行、fallback、手动时钟超时、半开探测限流和 forceOpen 时间戳单测。
+- 新增 `circuit_breaker_benchmark`，覆盖 Closed 成功/失败、Open 拒绝、HalfOpen 探测及多线程共享实例压测路径。
+
+### Docs
+- 更新 API 参考文档，补充 `CircuitBreakerError`、`CircuitBreakerExpected`、`BasicCircuitBreaker`、半开语义和配置归一化说明。
+- 更新性能测试文档，补充 `circuit_breaker_benchmark` 条目。
 
 ## [v3.1.0] - 2026-06-07
 

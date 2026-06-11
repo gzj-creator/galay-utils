@@ -1,5 +1,12 @@
 #include "../test_common.hpp"
 
+#include <expected>
+#include <variant>
+
+enum class CircuitBreakerTestError {
+    OperationFailed
+};
+
 void testRateLimiter() {
     std::cout << "=== Testing RateLimiter ===" << std::endl;
 
@@ -101,6 +108,194 @@ void testCircuitBreaker() {
     assert(cb.state() == CircuitState::Closed);
 
     std::cout << "CircuitBreaker tests passed!" << std::endl;
+}
+
+void testCircuitBreakerExpectedExecution() {
+    std::cout << "=== Testing CircuitBreaker expected execution ===" << std::endl;
+
+    using Error = std::variant<CircuitBreakerTestError, CircuitBreakerError>;
+    using Result = std::expected<int, Error>;
+
+    static_assert(CircuitBreakerExpected<Result>);
+    static_assert(!CircuitBreakerExpected<int>);
+
+    CircuitBreakerConfig config;
+    config.failureThreshold = 2;
+    config.successThreshold = 1;
+    config.resetTimeout = std::chrono::seconds(1);
+
+    CircuitBreaker cb(config);
+    int calls = 0;
+
+    auto success = cb.execute([&]() -> Result {
+        ++calls;
+        return 7;
+    });
+    assert(success.has_value());
+    assert(*success == 7);
+    assert(calls == 1);
+    assert(cb.failureCount() == 0);
+    assert(cb.state() == CircuitState::Closed);
+
+    auto firstFailure = cb.execute([&]() -> Result {
+        ++calls;
+        return std::unexpected(Error{CircuitBreakerTestError::OperationFailed});
+    });
+    assert(!firstFailure.has_value());
+    assert(std::holds_alternative<CircuitBreakerTestError>(firstFailure.error()));
+    assert(calls == 2);
+    assert(cb.failureCount() == 1);
+    assert(cb.state() == CircuitState::Closed);
+
+    auto secondFailure = cb.execute([&]() -> Result {
+        ++calls;
+        return std::unexpected(Error{CircuitBreakerTestError::OperationFailed});
+    });
+    assert(!secondFailure.has_value());
+    assert(calls == 3);
+    assert(cb.state() == CircuitState::Open);
+
+    auto blocked = cb.execute([&]() -> Result {
+        ++calls;
+        return 99;
+    });
+    assert(!blocked.has_value());
+    assert(std::get<CircuitBreakerError>(blocked.error()) == CircuitBreakerError::Open);
+    assert(calls == 3);
+
+    std::cout << "CircuitBreaker expected execution tests passed!" << std::endl;
+}
+
+void testCircuitBreakerExpectedFallback() {
+    std::cout << "=== Testing CircuitBreaker expected fallback ===" << std::endl;
+
+    using Result = std::expected<int, CircuitBreakerTestError>;
+
+    static_assert(CircuitBreakerExpected<Result>);
+
+    CircuitBreakerConfig config;
+    config.failureThreshold = 1;
+    config.successThreshold = 1;
+    config.resetTimeout = std::chrono::seconds(1);
+
+    CircuitBreaker cb(config);
+    int primaryCalls = 0;
+    int fallbackCalls = 0;
+
+    auto fallbackAfterFailure = cb.executeWithFallback(
+        [&]() -> Result {
+            ++primaryCalls;
+            return std::unexpected(CircuitBreakerTestError::OperationFailed);
+        },
+        [&]() -> Result {
+            ++fallbackCalls;
+            return 42;
+        });
+    assert(fallbackAfterFailure.has_value());
+    assert(*fallbackAfterFailure == 42);
+    assert(primaryCalls == 1);
+    assert(fallbackCalls == 1);
+    assert(cb.state() == CircuitState::Open);
+
+    auto fallbackWhenOpen = cb.executeWithFallback(
+        [&]() -> Result {
+            ++primaryCalls;
+            return 7;
+        },
+        [&]() -> Result {
+            ++fallbackCalls;
+            return 43;
+        });
+    assert(fallbackWhenOpen.has_value());
+    assert(*fallbackWhenOpen == 43);
+    assert(primaryCalls == 1);
+    assert(fallbackCalls == 2);
+
+    std::cout << "CircuitBreaker expected fallback tests passed!" << std::endl;
+}
+
+void testCircuitBreakerManualClockTimeout() {
+    std::cout << "=== Testing CircuitBreaker manual clock timeout ===" << std::endl;
+
+    ManualClock::reset();
+
+    CircuitBreakerConfig config;
+    config.failureThreshold = 1;
+    config.successThreshold = 1;
+    config.resetTimeout = std::chrono::seconds(1);
+
+    BasicCircuitBreaker<ManualClock> cb(config);
+
+    cb.onFailure();
+    assert(cb.state() == CircuitState::Open);
+
+    ManualClock::advance(std::chrono::milliseconds(999));
+    assert(!cb.allowRequest());
+    assert(cb.state() == CircuitState::Open);
+
+    ManualClock::advance(std::chrono::milliseconds(1));
+    assert(cb.allowRequest());
+    assert(cb.state() == CircuitState::HalfOpen);
+
+    std::cout << "CircuitBreaker manual clock timeout tests passed!" << std::endl;
+}
+
+void testCircuitBreakerHalfOpenProbeLimit() {
+    std::cout << "=== Testing CircuitBreaker half-open probe limit ===" << std::endl;
+
+    ManualClock::reset();
+
+    CircuitBreakerConfig config;
+    config.failureThreshold = 1;
+    config.successThreshold = 2;
+    config.resetTimeout = std::chrono::seconds(1);
+    config.halfOpenMaxRequests = 1;
+
+    BasicCircuitBreaker<ManualClock> cb(config);
+
+    cb.onFailure();
+    assert(cb.state() == CircuitState::Open);
+
+    ManualClock::advance(std::chrono::seconds(1));
+    assert(cb.allowRequest());
+    assert(cb.state() == CircuitState::HalfOpen);
+    assert(!cb.allowRequest());
+
+    cb.onSuccess();
+    assert(cb.state() == CircuitState::HalfOpen);
+    assert(cb.allowRequest());
+
+    cb.onSuccess();
+    assert(cb.state() == CircuitState::Closed);
+
+    std::cout << "CircuitBreaker half-open probe limit tests passed!" << std::endl;
+}
+
+void testCircuitBreakerForceOpenUsesCurrentTime() {
+    std::cout << "=== Testing CircuitBreaker force open timestamp ===" << std::endl;
+
+    ManualClock::reset();
+
+    CircuitBreakerConfig config;
+    config.failureThreshold = 1;
+    config.successThreshold = 1;
+    config.resetTimeout = std::chrono::seconds(1);
+
+    BasicCircuitBreaker<ManualClock> cb(config);
+
+    ManualClock::advance(std::chrono::seconds(10));
+    cb.forceOpen();
+    assert(cb.state() == CircuitState::Open);
+
+    ManualClock::advance(std::chrono::milliseconds(999));
+    assert(!cb.allowRequest());
+    assert(cb.state() == CircuitState::Open);
+
+    ManualClock::advance(std::chrono::milliseconds(1));
+    assert(cb.allowRequest());
+    assert(cb.state() == CircuitState::HalfOpen);
+
+    std::cout << "CircuitBreaker force open timestamp tests passed!" << std::endl;
 }
 
 // ==================== ConsistentHash Tests ====================
@@ -281,6 +476,11 @@ int main() {
     try {
         testRateLimiter();
         testCircuitBreaker();
+        testCircuitBreakerExpectedExecution();
+        testCircuitBreakerExpectedFallback();
+        testCircuitBreakerManualClockTimeout();
+        testCircuitBreakerHalfOpenProbeLimit();
+        testCircuitBreakerForceOpenUsesCurrentTime();
         stressTestCircuitBreaker();
         stressTestRateLimiter();
         return 0;
