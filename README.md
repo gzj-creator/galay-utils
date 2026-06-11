@@ -17,7 +17,7 @@
 | 真实 benchmark | `benchmark/` 下提供 LRU、ByteQueueView、RingBuffer benchmark；`BUILD_BENCHMARKS=OFF` 默认不构建 |
 | 真实测试 | `test/<area>/*_test.cpp` → 多个 CTest target；可选模块烟雾测试 `test_import_smoke` |
 | Unix 链接依赖 | `pthread`；Linux 额外需要 `dl` |
-| 额外头依赖 | 无 `galay-kernel` 依赖；`ThreadPool` 使用 `<concurrentqueue/moodycamel/*.h>`；限流器仅提供同步 `tryAcquire` 接口 |
+| 额外头依赖 | 无 `galay-kernel` 依赖；`ThreadPool` 使用 `<concurrentqueue/moodycamel/*.h>`；限流器仅提供无锁同步 `tryAcquire` 接口 |
 | 文档真相来源 | 公开头文件 → 实现行为 → `examples/` → `test/` → Markdown |
 
 ## 模块概览
@@ -152,8 +152,8 @@ target_link_libraries(your_target PRIVATE galay::galay-utils)
 
 - `galay-utils` 是接口库，公开头不再依赖 `galay-kernel`
 - `ThreadPool` 基于 moodycamel `BlockingConcurrentQueue`，CMake 会查找 `concurrentqueue/moodycamel/*.h`
-- `galay-utils/tool/rate_limiter.hpp` 仅保留同步非阻塞 `tryAcquire` 路径
-- 异步限流器和 `acquire()` awaitable 已移除；部分限流器内部带锁，不适合作为协程调度器上的 awaitable 使用
+- `galay-utils/tool/rate_limiter.hpp` 仅保留无锁同步非阻塞 `tryAcquire` 路径，失败直接返回 `false`
+- 异步限流器和 `acquire()` awaitable 已移除；需要协程挂起、唤醒、重试或超时时由上层运行时适配
 - `test/<area>/*_test.cpp` 与 `test/import_smoke.cpp` 不再额外链接 `galay-kernel`
 
 ## 文档导航

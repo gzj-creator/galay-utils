@@ -316,7 +316,7 @@
 
 ### `RateLimiter`
 
-`rate_limiter.hpp` 的公开面分为四个同步非阻塞限流器类型；异步 `acquire()` / awaitable 路径已移除，避免引入 `galay-kernel`，也避免把内部带锁实现暴露给协程调度线程：
+`rate_limiter.hpp` 的公开面分为四个无锁同步非阻塞限流器类型；异步 `acquire()` / awaitable 路径已移除，避免引入 `galay-kernel`。`tryAcquire(...)` 成功返回 `true`，未通过限流直接返回 `false`：
 
 - `CountingSemaphore`
   - `tryAcquire(size_t n = 1)`
@@ -343,7 +343,7 @@
 
 - 该头文件仅依赖标准库
 - 不再提供异步限流器，不再依赖 `galay-kernel`；`concurrentqueue/moodycamel` 仅用于线程池任务队列
-- `SlidingWindowLimiter` 内部使用互斥锁保护窗口队列；不要把限流器当作 coroutine awaitable 使用
+- 限流器内部使用原子状态与 CAS，不使用内部互斥锁；需要 coroutine awaitable 时由上层运行时适配
 
 ### `CircuitBreaker`
 
@@ -688,7 +688,7 @@
 - 线程 / 资源相关能力集中在 `tool/`、`process/`，检索时要额外关注阻塞/等待/资源释放语义
 - `ThreadPool::addTask(...)` 返回 `std::future<...>`，而 `execute(...)` 是 fire-and-forget 风格；两者不应混用为同一等待模型
 - `ObjectPool<T>` 与 `BlockingObjectPool<T>` 不是同一组方法：前者是“可扩容 + 非阻塞取对象”，后者是“固定池 + 阻塞等待”
-- `RateLimiter` 不再提供 `acquire(...)` awaitable；使用 `tryAcquire(...)` 获取同步非阻塞结果
+- `RateLimiter` 不再提供 `acquire(...)` awaitable；使用无锁同步非阻塞 `tryAcquire(...)` 获取结果
 - `ConsistentHash` 当前没有 `getNodeStatus()` 公开 API；状态检索要从 `NodeStatus`、`PhysicalNode` 以及标记接口理解
 - `App::run(...)`、`ParserBase::*`、`Process::*`、`System::*` 直接面向进程 / 文件系统 / 环境变量等外部状态，细节问题需要结合真实调用环境理解
 - 资源生命周期主要集中在 `ThreadPool`、对象池、限流器、断路器与 `Process` 相关 API；纯字符串 / 哈希 / 编码工具通常是无状态或短生命周期值语义

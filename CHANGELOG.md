@@ -9,12 +9,16 @@
 
 ## [Unreleased]
 
+## [v3.2.0] - 2026-06-11
+
 ### Changed
 - 将 `CircuitBreaker` 的 `execute()` 和 `executeWithFallback()` 从异常模型重构为 `std::expected` 模型：不再通过 `try/catch` 判断失败，改为检查返回结果的 `has_value()`；熔断打开时返回包含 `CircuitBreakerError::Open` 的失败结果，不抛异常。
 - 引入 `CircuitBreakerExpected<T>` concept 约束执行接口接受的 expected-like 返回类型，通过编译期类型检查替代运行时异常。
 - 将 `CircuitBreaker` 重命名为模板 `BasicCircuitBreaker<ClockType>`，支持注入自定义时钟源做确定性测试；`CircuitBreaker` 为默认 `steady_clock` 别名。
 - 放宽部分原子操作的内存序（`acq_rel` → `relaxed`），减少不必要同步开销。
 - 将超时时间预计算为纳秒整数，避免每次 `allowRequest()` 重复 `duration_cast`。
+- 将 `TokenBucketLimiter`、`LeakyBucketLimiter` 的速率与容量改为原子定点状态，避免并发 setter 与 `tryAcquire()` 之间的数据竞争。
+- 将 `SlidingWindowLimiter` 从 `std::mutex` + `std::deque` 改为固定原子槽位与 CAS 记录请求时间，限流器家族保持无锁同步非阻塞语义，未通过限流直接返回 `false`。
 
 ### Added
 - 新增 `halfOpenMaxRequests` 配置字段，限制半开状态下同时放行的并发探测请求数。
@@ -22,10 +26,15 @@
 - 新增 `forceOpen()` 时记录当前时间戳并重置计数器，使后续超时转换到半开状态语义正确。
 - 新增 5 组 CircuitBreaker expected 执行、fallback、手动时钟超时、半开探测限流和 forceOpen 时间戳单测。
 - 新增 `circuit_breaker_benchmark`，覆盖 Closed 成功/失败、Open 拒绝、HalfOpen 探测及多线程共享实例压测路径。
+- 新增限流器源码无锁断言和 16 线程精确容量压测，覆盖 `CountingSemaphore`、`TokenBucketLimiter`、`SlidingWindowLimiter`、`LeakyBucketLimiter` 并发下不超放。
 
 ### Docs
 - 更新 API 参考文档，补充 `CircuitBreakerError`、`CircuitBreakerExpected`、`BasicCircuitBreaker`、半开语义和配置归一化说明。
 - 更新性能测试文档，补充 `circuit_breaker_benchmark` 条目。
+- 更新 README、架构设计、API 参考、使用指南、高级主题和 FAQ，明确 RateLimiter 为无锁同步非阻塞接口，不提供 awaitable。
+
+### Chore
+- 将 CMake project 版本提升到 `3.2.0`，对齐本次中版本 tag。
 
 ## [v3.1.0] - 2026-06-07
 

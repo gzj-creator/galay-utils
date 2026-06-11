@@ -1,11 +1,73 @@
 #include "../test_common.hpp"
 
+#include <barrier>
 #include <expected>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <variant>
 
 enum class CircuitBreakerTestError {
     OperationFailed
 };
+
+struct ConcurrentAcquireResult {
+    size_t attempts;
+    size_t acquired;
+    std::chrono::milliseconds duration;
+};
+
+template<typename Acquire>
+ConcurrentAcquireResult runConcurrentAcquire(size_t threadCount, size_t attemptsPerThread, Acquire& acquire) {
+    std::barrier startLine(static_cast<std::ptrdiff_t>(threadCount + 1));
+    std::atomic<size_t> acquired{0};
+    std::vector<std::thread> threads;
+    threads.reserve(threadCount);
+
+    for (size_t threadIndex = 0; threadIndex < threadCount; ++threadIndex) {
+        threads.emplace_back([&]() {
+            startLine.arrive_and_wait();
+            for (size_t i = 0; i < attemptsPerThread; ++i) {
+                if (acquire()) {
+                    acquired.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+        });
+    }
+
+    startLine.arrive_and_wait();
+    const auto start = std::chrono::high_resolution_clock::now();
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    const auto end = std::chrono::high_resolution_clock::now();
+
+    return {
+        threadCount * attemptsPerThread,
+        acquired.load(std::memory_order_relaxed),
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start)
+    };
+}
+
+void testRateLimiterUsesLockFreeNonBlockingState() {
+    const auto sourceRoot = std::filesystem::path(GALAY_UTILS_SOURCE_DIR);
+    std::ifstream input(sourceRoot / "galay-utils/tool/rate_limiter.hpp");
+    assert(input.good());
+
+    std::ostringstream buffer;
+    buffer << input.rdbuf();
+    const std::string source = buffer.str();
+
+    const auto rateLimiterStart = source.find("class CountingSemaphore");
+    assert(rateLimiterStart != std::string::npos);
+
+    const std::string limiterSource = source.substr(rateLimiterStart);
+    assert(limiterSource.find("std::mutex") == std::string::npos);
+    assert(limiterSource.find("std::lock_guard") == std::string::npos);
+    assert(limiterSource.find("std::unique_lock") == std::string::npos);
+    assert(limiterSource.find("std::condition_variable") == std::string::npos);
+    assert(limiterSource.find("std::deque") == std::string::npos);
+}
 
 void testRateLimiter() {
     std::cout << "=== Testing RateLimiter ===" << std::endl;
@@ -358,6 +420,83 @@ void stressTestCircuitBreaker() {
     std::cout << "CircuitBreaker stress test passed!" << std::endl;
 }
 
+void stressTestRateLimiterCorrectness() {
+    std::cout << "=== Stress Testing RateLimiter correctness ===" << std::endl;
+
+    constexpr size_t threadCount = 16;
+    constexpr size_t attemptsPerThread = 2048;
+    constexpr size_t limit = 2048;
+
+    {
+        CountingSemaphore limiter(limit);
+        auto acquire = [&]() {
+            return limiter.tryAcquire();
+        };
+
+        const auto result = runConcurrentAcquire(threadCount, attemptsPerThread, acquire);
+
+        std::cout << "  [CountingSemaphore - Exact Limit]" << std::endl;
+        std::cout << "    Attempts: " << result.attempts << ", Acquired: " << result.acquired << std::endl;
+        std::cout << "    Duration: " << result.duration.count() << "ms" << std::endl;
+
+        assert(result.acquired == limit);
+        assert(limiter.available() == 0);
+        assert(!limiter.tryAcquire());
+    }
+
+    {
+        TokenBucketLimiter limiter(0, limit);
+        auto acquire = [&]() {
+            return limiter.tryAcquire();
+        };
+
+        const auto result = runConcurrentAcquire(threadCount, attemptsPerThread, acquire);
+
+        std::cout << "  [TokenBucketLimiter - Exact Capacity]" << std::endl;
+        std::cout << "    Attempts: " << result.attempts << ", Acquired: " << result.acquired << std::endl;
+        std::cout << "    Duration: " << result.duration.count() << "ms" << std::endl;
+
+        assert(result.acquired == limit);
+        assert(limiter.availableTokens() == 0.0);
+        assert(!limiter.tryAcquire());
+    }
+
+    {
+        SlidingWindowLimiter limiter(limit, std::chrono::hours(1));
+        auto acquire = [&]() {
+            return limiter.tryAcquire();
+        };
+
+        const auto result = runConcurrentAcquire(threadCount, attemptsPerThread, acquire);
+
+        std::cout << "  [SlidingWindowLimiter - Exact Window]" << std::endl;
+        std::cout << "    Attempts: " << result.attempts << ", Acquired: " << result.acquired << std::endl;
+        std::cout << "    Duration: " << result.duration.count() << "ms" << std::endl;
+
+        assert(result.acquired == limit);
+        assert(!limiter.tryAcquire());
+    }
+
+    {
+        LeakyBucketLimiter limiter(0, limit);
+        auto acquire = [&]() {
+            return limiter.tryAcquire();
+        };
+
+        const auto result = runConcurrentAcquire(threadCount, attemptsPerThread, acquire);
+
+        std::cout << "  [LeakyBucketLimiter - Exact Capacity]" << std::endl;
+        std::cout << "    Attempts: " << result.attempts << ", Acquired: " << result.acquired << std::endl;
+        std::cout << "    Duration: " << result.duration.count() << "ms" << std::endl;
+
+        assert(result.acquired == limit);
+        assert(limiter.currentWater() == static_cast<double>(limit));
+        assert(!limiter.tryAcquire());
+    }
+
+    std::cout << "RateLimiter correctness stress test passed!" << std::endl;
+}
+
 void stressTestRateLimiter() {
     std::cout << "=== Stress Testing RateLimiter ===" << std::endl;
 
@@ -474,6 +613,7 @@ void stressTestRateLimiter() {
 int main() {
     std::cout << "\n=== resilience_test ===" << std::endl;
     try {
+        testRateLimiterUsesLockFreeNonBlockingState();
         testRateLimiter();
         testCircuitBreaker();
         testCircuitBreakerExpectedExecution();
@@ -482,6 +622,7 @@ int main() {
         testCircuitBreakerHalfOpenProbeLimit();
         testCircuitBreakerForceOpenUsesCurrentTime();
         stressTestCircuitBreaker();
+        stressTestRateLimiterCorrectness();
         stressTestRateLimiter();
         return 0;
     } catch (const std::exception& e) {

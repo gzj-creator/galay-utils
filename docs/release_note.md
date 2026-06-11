@@ -77,3 +77,18 @@
 - 新增 `mallocBytes`、`deepCopyBytes`、`reallocBytes`、`clearBytes`、`freeBytes` 辅助函数，便于 kernel 等下游复用统一字节元数据
 - 将 `Bytes` 接入 umbrella header 与 C++23 module facade，补充 buffer 测试和模块导入烟测
 - 补充迁移设计、实现计划和公开 API 文档，并将 CMake project 版本提升到 `3.1.0`
+
+## v3.2.0 - 2026-06-11
+
+- **版本级别**: 中版本（minor）
+- **Git 提交消息**: feat: 发布 v3.2.0 并强化流控组件并发语义
+- **Git Tag**: v3.2.0
+
+### 变更摘要
+
+- 将 `CircuitBreaker` 的 `execute()` 和 `executeWithFallback()` 从异常模型重构为 `std::expected` 模型，执行接口通过 `CircuitBreakerExpected<T>` concept 约束 expected-like 返回值；熔断打开时返回 `CircuitBreakerError::Open`，不再抛异常。
+- 将 `CircuitBreaker` 扩展为可注入时钟的 `BasicCircuitBreaker<ClockType>`，默认 `CircuitBreaker` 保持为 `steady_clock` 别名，并新增半开并发探测上限、配置归一化和 `forceOpen()` 时间戳修正。
+- 新增 `circuit_breaker_benchmark`，覆盖 Closed、Open、HalfOpen 和多线程共享实例路径，并补充 expected 执行、fallback、手动时钟、半开探测和 forceOpen 单测。
+- 将 `TokenBucketLimiter`、`LeakyBucketLimiter` 的速率与容量改为原子定点状态，将 `SlidingWindowLimiter` 改为固定原子槽位与 CAS，实现 RateLimiter 家族无锁同步非阻塞语义，未通过限流直接返回 `false`。
+- 新增限流器源码无锁断言和 16 线程精确容量压测，验证四种限流器在多线程竞争下不会超放。
+- 更新 README、架构设计、API 参考、使用指南、高级主题、FAQ 和性能测试文档，并将 CMake project 版本提升到 `3.2.0`。
